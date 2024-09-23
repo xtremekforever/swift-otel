@@ -45,7 +45,7 @@ where Clock.Duration == Duration
         self.clock = clock
 
         buffer = Deque(minimumCapacity: Int(configuration.maximumQueueSize))
-        (explicitTickStream, explicitTick) = AsyncStream.makeStream()
+        (explicitTickStream, explicitTick) = AsyncStream.makeStream(bufferingPolicy: .bufferingNewest(1))
         (logStream, logContinuation) = AsyncStream.makeStream()
     }
 
@@ -62,7 +62,9 @@ where Clock.Duration == Duration
     }
 
     public func run() async throws {
-        let timerSequence = AsyncTimerSequence(interval: configuration.scheduleDelay, clock: clock).map { _ in }
+        let timerSequence = AsyncTimerSequence(interval: configuration.scheduleDelay, clock: clock)
+            .buffer(policy: .bufferingLatest(1))
+            .map { _ in }
         let mergedSequence = merge(timerSequence, explicitTickStream).cancelOnGracefulShutdown()
 
         await withThrowingTaskGroup(of: Void.self) { taskGroup in
