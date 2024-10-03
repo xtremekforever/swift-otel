@@ -11,12 +11,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-import W3CTraceContext
+import ServiceContextModule
 
-extension TraceID {
-    /// A trace ID stub with bytes from one to sixteen.
-    public static let oneToSixteen = TraceID(bytes: .init((1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16)))
-
-    /// A trace ID stub with all bytes being zero.
-    public static let allZeroes = TraceID(bytes: .init((0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)))
+extension ServiceContext {
+    @_spi(OTelBenchmarking)
+    public static func withSpanContext(_ spanContext: OTelSpanContext) -> Self {
+        var context = ServiceContext.topLevel
+        context.spanContext = spanContext
+        return context
+    }
 }
