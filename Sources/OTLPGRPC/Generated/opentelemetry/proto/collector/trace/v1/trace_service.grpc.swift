@@ -24,79 +24,192 @@
 import GRPCCore
 import GRPCProtobuf
 
+// MARK: - opentelemetry.proto.collector.trace.v1.TraceService
+
+/// Namespace containing generated types for the "opentelemetry.proto.collector.trace.v1.TraceService" service.
 internal enum Opentelemetry_Proto_Collector_Trace_V1_TraceService {
-    internal static let descriptor = GRPCCore.ServiceDescriptor.opentelemetry_proto_collector_trace_v1_TraceService
+    /// Service descriptor for the "opentelemetry.proto.collector.trace.v1.TraceService" service.
+    internal static let descriptor = GRPCCore.ServiceDescriptor(fullyQualifiedService: "opentelemetry.proto.collector.trace.v1.TraceService")
+    /// Namespace for method metadata.
     internal enum Method {
+        /// Namespace for "Export" metadata.
         internal enum Export {
+            /// Request type for "Export".
             internal typealias Input = Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest
+            /// Response type for "Export".
             internal typealias Output = Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse
+            /// Descriptor for "Export".
             internal static let descriptor = GRPCCore.MethodDescriptor(
-                service: Opentelemetry_Proto_Collector_Trace_V1_TraceService.descriptor.fullyQualifiedService,
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "opentelemetry.proto.collector.trace.v1.TraceService"),
                 method: "Export"
             )
         }
+        /// Descriptors for all methods in the "opentelemetry.proto.collector.trace.v1.TraceService" service.
         internal static let descriptors: [GRPCCore.MethodDescriptor] = [
             Export.descriptor
         ]
     }
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
-    internal typealias ClientProtocol = Opentelemetry_Proto_Collector_Trace_V1_TraceService_ClientProtocol
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
-    internal typealias Client = Opentelemetry_Proto_Collector_Trace_V1_TraceService_Client
 }
 
 extension GRPCCore.ServiceDescriptor {
-    internal static let opentelemetry_proto_collector_trace_v1_TraceService = Self(
-        package: "opentelemetry.proto.collector.trace.v1",
-        service: "TraceService"
-    )
+    /// Service descriptor for the "opentelemetry.proto.collector.trace.v1.TraceService" service.
+    internal static let opentelemetry_proto_collector_trace_v1_TraceService = GRPCCore.ServiceDescriptor(fullyQualifiedService: "opentelemetry.proto.collector.trace.v1.TraceService")
 }
 
-/// Service that can be used to push spans between one Application instrumented with
-/// OpenTelemetry and a collector, or between a collector and a central collector (in this
-/// case spans are sent/received to/from multiple Applications).
-@available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
-internal protocol Opentelemetry_Proto_Collector_Trace_V1_TraceService_ClientProtocol: Sendable {
-    /// For performance reasons, it is recommended to keep this RPC
-    /// alive for the entire life of the application.
-    func export<R>(
-        request: GRPCCore.ClientRequest<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest>,
-        serializer: some GRPCCore.MessageSerializer<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest>,
-        deserializer: some GRPCCore.MessageDeserializer<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse>,
-        options: GRPCCore.CallOptions,
-        _ body: @Sendable @escaping (GRPCCore.ClientResponse<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse>) async throws -> R
-    ) async throws -> R where R: Sendable
+// MARK: opentelemetry.proto.collector.trace.v1.TraceService (client)
+
+extension Opentelemetry_Proto_Collector_Trace_V1_TraceService {
+    /// Generated client protocol for the "opentelemetry.proto.collector.trace.v1.TraceService" service.
+    ///
+    /// You don't need to implement this protocol directly, use the generated
+    /// implementation, ``Client``.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > Service that can be used to push spans between one Application instrumented with
+    /// > OpenTelemetry and a collector, or between a collector and a central collector (in this
+    /// > case spans are sent/received to/from multiple Applications).
+    internal protocol ClientProtocol: Sendable {
+        /// Call the "Export" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > For performance reasons, it is recommended to keep this RPC
+        /// > alive for the entire life of the application.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest` message.
+        ///   - serializer: A serializer for `Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest` messages.
+        ///   - deserializer: A deserializer for `Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        func export<Result>(
+            request: GRPCCore.ClientRequest<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest>,
+            serializer: some GRPCCore.MessageSerializer<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+    }
+
+    /// Generated client for the "opentelemetry.proto.collector.trace.v1.TraceService" service.
+    ///
+    /// The ``Client`` provides an implementation of ``ClientProtocol`` which wraps
+    /// a `GRPCCore.GRPCCClient`. The underlying `GRPCClient` provides the long-lived
+    /// means of communication with the remote peer.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > Service that can be used to push spans between one Application instrumented with
+    /// > OpenTelemetry and a collector, or between a collector and a central collector (in this
+    /// > case spans are sent/received to/from multiple Applications).
+    internal struct Client: ClientProtocol {
+        private let client: GRPCCore.GRPCClient
+
+        /// Creates a new client wrapping the provided `GRPCCore.GRPCClient`.
+        ///
+        /// - Parameters:
+        ///   - client: A `GRPCCore.GRPCClient` providing a communication channel to the service.
+        internal init(wrapping client: GRPCCore.GRPCClient) {
+            self.client = client
+        }
+
+        /// Call the "Export" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > For performance reasons, it is recommended to keep this RPC
+        /// > alive for the entire life of the application.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest` message.
+        ///   - serializer: A serializer for `Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest` messages.
+        ///   - deserializer: A deserializer for `Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        internal func export<Result>(
+            request: GRPCCore.ClientRequest<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest>,
+            serializer: some GRPCCore.MessageSerializer<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Opentelemetry_Proto_Collector_Trace_V1_TraceService.Method.Export.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+    }
 }
 
-@available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+// Helpers providing default arguments to 'ClientProtocol' methods.
 extension Opentelemetry_Proto_Collector_Trace_V1_TraceService.ClientProtocol {
-    internal func export<R>(
+    /// Call the "Export" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > For performance reasons, it is recommended to keep this RPC
+    /// > alive for the entire life of the application.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func export<Result>(
         request: GRPCCore.ClientRequest<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        _ body: @Sendable @escaping (GRPCCore.ClientResponse<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse>) async throws -> R = {
-            try $0.message
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse>) async throws -> Result = { response in
+            try response.message
         }
-    ) async throws -> R where R: Sendable {
+    ) async throws -> Result where Result: Sendable {
         try await self.export(
             request: request,
             serializer: GRPCProtobuf.ProtobufSerializer<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest>(),
             deserializer: GRPCProtobuf.ProtobufDeserializer<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse>(),
             options: options,
-            body
+            onResponse: handleResponse
         )
     }
 }
 
-@available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+// Helpers providing sugared APIs for 'ClientProtocol' methods.
 extension Opentelemetry_Proto_Collector_Trace_V1_TraceService.ClientProtocol {
-    /// For performance reasons, it is recommended to keep this RPC
-    /// alive for the entire life of the application.
+    /// Call the "Export" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > For performance reasons, it is recommended to keep this RPC
+    /// > alive for the entire life of the application.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
     internal func export<Result>(
         _ message: Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse>) async throws -> Result = {
-            try $0.message
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse>) async throws -> Result = { response in
+            try response.message
         }
     ) async throws -> Result where Result: Sendable {
         let request = GRPCCore.ClientRequest<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest>(
@@ -106,40 +219,7 @@ extension Opentelemetry_Proto_Collector_Trace_V1_TraceService.ClientProtocol {
         return try await self.export(
             request: request,
             options: options,
-            handleResponse
-        )
-    }
-}
-
-/// Service that can be used to push spans between one Application instrumented with
-/// OpenTelemetry and a collector, or between a collector and a central collector (in this
-/// case spans are sent/received to/from multiple Applications).
-@available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
-internal struct Opentelemetry_Proto_Collector_Trace_V1_TraceService_Client: Opentelemetry_Proto_Collector_Trace_V1_TraceService.ClientProtocol {
-    private let client: GRPCCore.GRPCClient
-    
-    internal init(wrapping client: GRPCCore.GRPCClient) {
-        self.client = client
-    }
-    
-    /// For performance reasons, it is recommended to keep this RPC
-    /// alive for the entire life of the application.
-    internal func export<R>(
-        request: GRPCCore.ClientRequest<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest>,
-        serializer: some GRPCCore.MessageSerializer<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest>,
-        deserializer: some GRPCCore.MessageDeserializer<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse>,
-        options: GRPCCore.CallOptions = .defaults,
-        _ body: @Sendable @escaping (GRPCCore.ClientResponse<Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse>) async throws -> R = {
-            try $0.message
-        }
-    ) async throws -> R where R: Sendable {
-        try await self.client.unary(
-            request: request,
-            descriptor: Opentelemetry_Proto_Collector_Trace_V1_TraceService.Method.Export.descriptor,
-            serializer: serializer,
-            deserializer: deserializer,
-            options: options,
-            handler: body
+            onResponse: handleResponse
         )
     }
 }

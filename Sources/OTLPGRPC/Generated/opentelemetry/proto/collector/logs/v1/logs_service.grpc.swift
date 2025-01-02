@@ -24,79 +24,192 @@
 import GRPCCore
 import GRPCProtobuf
 
+// MARK: - opentelemetry.proto.collector.logs.v1.LogsService
+
+/// Namespace containing generated types for the "opentelemetry.proto.collector.logs.v1.LogsService" service.
 internal enum Opentelemetry_Proto_Collector_Logs_V1_LogsService {
-    internal static let descriptor = GRPCCore.ServiceDescriptor.opentelemetry_proto_collector_logs_v1_LogsService
+    /// Service descriptor for the "opentelemetry.proto.collector.logs.v1.LogsService" service.
+    internal static let descriptor = GRPCCore.ServiceDescriptor(fullyQualifiedService: "opentelemetry.proto.collector.logs.v1.LogsService")
+    /// Namespace for method metadata.
     internal enum Method {
+        /// Namespace for "Export" metadata.
         internal enum Export {
+            /// Request type for "Export".
             internal typealias Input = Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest
+            /// Response type for "Export".
             internal typealias Output = Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceResponse
+            /// Descriptor for "Export".
             internal static let descriptor = GRPCCore.MethodDescriptor(
-                service: Opentelemetry_Proto_Collector_Logs_V1_LogsService.descriptor.fullyQualifiedService,
+                service: GRPCCore.ServiceDescriptor(fullyQualifiedService: "opentelemetry.proto.collector.logs.v1.LogsService"),
                 method: "Export"
             )
         }
+        /// Descriptors for all methods in the "opentelemetry.proto.collector.logs.v1.LogsService" service.
         internal static let descriptors: [GRPCCore.MethodDescriptor] = [
             Export.descriptor
         ]
     }
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
-    internal typealias ClientProtocol = Opentelemetry_Proto_Collector_Logs_V1_LogsService_ClientProtocol
-    @available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
-    internal typealias Client = Opentelemetry_Proto_Collector_Logs_V1_LogsService_Client
 }
 
 extension GRPCCore.ServiceDescriptor {
-    internal static let opentelemetry_proto_collector_logs_v1_LogsService = Self(
-        package: "opentelemetry.proto.collector.logs.v1",
-        service: "LogsService"
-    )
+    /// Service descriptor for the "opentelemetry.proto.collector.logs.v1.LogsService" service.
+    internal static let opentelemetry_proto_collector_logs_v1_LogsService = GRPCCore.ServiceDescriptor(fullyQualifiedService: "opentelemetry.proto.collector.logs.v1.LogsService")
 }
 
-/// Service that can be used to push logs between one Application instrumented with
-/// OpenTelemetry and an collector, or between an collector and a central collector (in this
-/// case logs are sent/received to/from multiple Applications).
-@available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
-internal protocol Opentelemetry_Proto_Collector_Logs_V1_LogsService_ClientProtocol: Sendable {
-    /// For performance reasons, it is recommended to keep this RPC
-    /// alive for the entire life of the application.
-    func export<R>(
-        request: GRPCCore.ClientRequest<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest>,
-        serializer: some GRPCCore.MessageSerializer<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest>,
-        deserializer: some GRPCCore.MessageDeserializer<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceResponse>,
-        options: GRPCCore.CallOptions,
-        _ body: @Sendable @escaping (GRPCCore.ClientResponse<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceResponse>) async throws -> R
-    ) async throws -> R where R: Sendable
+// MARK: opentelemetry.proto.collector.logs.v1.LogsService (client)
+
+extension Opentelemetry_Proto_Collector_Logs_V1_LogsService {
+    /// Generated client protocol for the "opentelemetry.proto.collector.logs.v1.LogsService" service.
+    ///
+    /// You don't need to implement this protocol directly, use the generated
+    /// implementation, ``Client``.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > Service that can be used to push logs between one Application instrumented with
+    /// > OpenTelemetry and an collector, or between an collector and a central collector (in this
+    /// > case logs are sent/received to/from multiple Applications).
+    internal protocol ClientProtocol: Sendable {
+        /// Call the "Export" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > For performance reasons, it is recommended to keep this RPC
+        /// > alive for the entire life of the application.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest` message.
+        ///   - serializer: A serializer for `Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest` messages.
+        ///   - deserializer: A deserializer for `Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        func export<Result>(
+            request: GRPCCore.ClientRequest<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest>,
+            serializer: some GRPCCore.MessageSerializer<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceResponse>,
+            options: GRPCCore.CallOptions,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceResponse>) async throws -> Result
+        ) async throws -> Result where Result: Sendable
+    }
+
+    /// Generated client for the "opentelemetry.proto.collector.logs.v1.LogsService" service.
+    ///
+    /// The ``Client`` provides an implementation of ``ClientProtocol`` which wraps
+    /// a `GRPCCore.GRPCCClient`. The underlying `GRPCClient` provides the long-lived
+    /// means of communication with the remote peer.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > Service that can be used to push logs between one Application instrumented with
+    /// > OpenTelemetry and an collector, or between an collector and a central collector (in this
+    /// > case logs are sent/received to/from multiple Applications).
+    internal struct Client: ClientProtocol {
+        private let client: GRPCCore.GRPCClient
+
+        /// Creates a new client wrapping the provided `GRPCCore.GRPCClient`.
+        ///
+        /// - Parameters:
+        ///   - client: A `GRPCCore.GRPCClient` providing a communication channel to the service.
+        internal init(wrapping client: GRPCCore.GRPCClient) {
+            self.client = client
+        }
+
+        /// Call the "Export" method.
+        ///
+        /// > Source IDL Documentation:
+        /// >
+        /// > For performance reasons, it is recommended to keep this RPC
+        /// > alive for the entire life of the application.
+        ///
+        /// - Parameters:
+        ///   - request: A request containing a single `Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest` message.
+        ///   - serializer: A serializer for `Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest` messages.
+        ///   - deserializer: A deserializer for `Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceResponse` messages.
+        ///   - options: Options to apply to this RPC.
+        ///   - handleResponse: A closure which handles the response, the result of which is
+        ///       returned to the caller. Returning from the closure will cancel the RPC if it
+        ///       hasn't already finished.
+        /// - Returns: The result of `handleResponse`.
+        internal func export<Result>(
+            request: GRPCCore.ClientRequest<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest>,
+            serializer: some GRPCCore.MessageSerializer<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest>,
+            deserializer: some GRPCCore.MessageDeserializer<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceResponse>,
+            options: GRPCCore.CallOptions = .defaults,
+            onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceResponse>) async throws -> Result = { response in
+                try response.message
+            }
+        ) async throws -> Result where Result: Sendable {
+            try await self.client.unary(
+                request: request,
+                descriptor: Opentelemetry_Proto_Collector_Logs_V1_LogsService.Method.Export.descriptor,
+                serializer: serializer,
+                deserializer: deserializer,
+                options: options,
+                onResponse: handleResponse
+            )
+        }
+    }
 }
 
-@available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+// Helpers providing default arguments to 'ClientProtocol' methods.
 extension Opentelemetry_Proto_Collector_Logs_V1_LogsService.ClientProtocol {
-    internal func export<R>(
+    /// Call the "Export" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > For performance reasons, it is recommended to keep this RPC
+    /// > alive for the entire life of the application.
+    ///
+    /// - Parameters:
+    ///   - request: A request containing a single `Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest` message.
+    ///   - options: Options to apply to this RPC.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
+    internal func export<Result>(
         request: GRPCCore.ClientRequest<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest>,
         options: GRPCCore.CallOptions = .defaults,
-        _ body: @Sendable @escaping (GRPCCore.ClientResponse<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceResponse>) async throws -> R = {
-            try $0.message
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceResponse>) async throws -> Result = { response in
+            try response.message
         }
-    ) async throws -> R where R: Sendable {
+    ) async throws -> Result where Result: Sendable {
         try await self.export(
             request: request,
             serializer: GRPCProtobuf.ProtobufSerializer<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest>(),
             deserializer: GRPCProtobuf.ProtobufDeserializer<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceResponse>(),
             options: options,
-            body
+            onResponse: handleResponse
         )
     }
 }
 
-@available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
+// Helpers providing sugared APIs for 'ClientProtocol' methods.
 extension Opentelemetry_Proto_Collector_Logs_V1_LogsService.ClientProtocol {
-    /// For performance reasons, it is recommended to keep this RPC
-    /// alive for the entire life of the application.
+    /// Call the "Export" method.
+    ///
+    /// > Source IDL Documentation:
+    /// >
+    /// > For performance reasons, it is recommended to keep this RPC
+    /// > alive for the entire life of the application.
+    ///
+    /// - Parameters:
+    ///   - message: request message to send.
+    ///   - metadata: Additional metadata to send, defaults to empty.
+    ///   - options: Options to apply to this RPC, defaults to `.defaults`.
+    ///   - handleResponse: A closure which handles the response, the result of which is
+    ///       returned to the caller. Returning from the closure will cancel the RPC if it
+    ///       hasn't already finished.
+    /// - Returns: The result of `handleResponse`.
     internal func export<Result>(
         _ message: Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest,
         metadata: GRPCCore.Metadata = [:],
         options: GRPCCore.CallOptions = .defaults,
-        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceResponse>) async throws -> Result = {
-            try $0.message
+        onResponse handleResponse: @Sendable @escaping (GRPCCore.ClientResponse<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceResponse>) async throws -> Result = { response in
+            try response.message
         }
     ) async throws -> Result where Result: Sendable {
         let request = GRPCCore.ClientRequest<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest>(
@@ -106,40 +219,7 @@ extension Opentelemetry_Proto_Collector_Logs_V1_LogsService.ClientProtocol {
         return try await self.export(
             request: request,
             options: options,
-            handleResponse
-        )
-    }
-}
-
-/// Service that can be used to push logs between one Application instrumented with
-/// OpenTelemetry and an collector, or between an collector and a central collector (in this
-/// case logs are sent/received to/from multiple Applications).
-@available(macOS 15.0, iOS 18.0, watchOS 11.0, tvOS 18.0, visionOS 2.0, *)
-internal struct Opentelemetry_Proto_Collector_Logs_V1_LogsService_Client: Opentelemetry_Proto_Collector_Logs_V1_LogsService.ClientProtocol {
-    private let client: GRPCCore.GRPCClient
-    
-    internal init(wrapping client: GRPCCore.GRPCClient) {
-        self.client = client
-    }
-    
-    /// For performance reasons, it is recommended to keep this RPC
-    /// alive for the entire life of the application.
-    internal func export<R>(
-        request: GRPCCore.ClientRequest<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest>,
-        serializer: some GRPCCore.MessageSerializer<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest>,
-        deserializer: some GRPCCore.MessageDeserializer<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceResponse>,
-        options: GRPCCore.CallOptions = .defaults,
-        _ body: @Sendable @escaping (GRPCCore.ClientResponse<Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceResponse>) async throws -> R = {
-            try $0.message
-        }
-    ) async throws -> R where R: Sendable {
-        try await self.client.unary(
-            request: request,
-            descriptor: Opentelemetry_Proto_Collector_Logs_V1_LogsService.Method.Export.descriptor,
-            serializer: serializer,
-            deserializer: deserializer,
-            options: options,
-            handler: body
+            onResponse: handleResponse
         )
     }
 }
