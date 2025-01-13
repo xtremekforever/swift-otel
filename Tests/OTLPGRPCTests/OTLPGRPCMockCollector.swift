@@ -12,7 +12,8 @@
 //===----------------------------------------------------------------------===//
 
 import Dispatch
-import GRPC
+import GRPCCore
+import GRPCNIOTransportHTTP2Posix
 import Logging
 import NIO
 import NIOConcurrencyHelpers
@@ -26,70 +27,53 @@ final class OTLPGRPCMockCollector: Sendable {
     let traceProvider = TraceServiceProvider()
 
     @discardableResult
-    func withInsecureServer<T>(operation: (String) async throws -> T) async throws -> T {
-        let server = try await Server.insecure(group: MultiThreadedEventLoopGroup.singleton)
-            .withLogger(Logger(label: String(describing: type(of: self))))
-            .withServiceProviders([
-                metricsProvider,
-                traceProvider,
-            ])
-            .bind(host: "localhost", port: 0)
-            .get()
-
-        do {
-            let port = try XCTUnwrap(server.channel.localAddress?.port)
-            let result = try await operation("http://localhost:\(port)")
-            try await server.close().get()
-            return result
-        } catch {
-            try await server.close().get()
-            throw error
+    func withInsecureServer<T: Sendable>(operation: (String) async throws -> T) async throws -> T {
+        let transport = HTTP2ServerTransport.Posix(
+            address: .ipv4(host: "127.0.0.1", port: 0),
+            transportSecurity: .plaintext
+        )
+        return try await withGRPCServer(
+            transport: transport,
+            services: [metricsProvider, traceProvider]
+        ) { server in
+            let listeningAddress = try await server.listeningAddress
+            let port = try XCTUnwrap(listeningAddress?.ipv4?.port)
+            return try await operation("http://127.0.0.1:\(port)")
         }
     }
 
     @discardableResult
-    func withSecureServer<T>(
-        operation: (_ endpoint: String, _ trustRoots: NIOSSLTrustRoots) async throws -> T
+    func withSecureServer<T: Sendable>(
+        operation: (
+            _ endpoint: String,
+            _ trustRoots: TLSConfig.TrustRootsSource
+        ) async throws -> T
     ) async throws -> T {
-        let trustRoots = try NIOSSLTrustRoots.certificates(
-            [NIOSSLCertificate(bytes: Array(exampleCACert.utf8), format: .pem)]
-        )
-        let certificate = try NIOSSLCertificate(bytes: Array(exampleServerCert.utf8), format: .pem)
-        let privateKey = try NIOSSLPrivateKey(bytes: Array(exampleServerKey.utf8), format: .pem)
-        let server = try await Server
-            .usingTLSBackedByNIOSSL(
-                on: MultiThreadedEventLoopGroup.singleton,
-                certificateChain: [certificate],
-                privateKey: privateKey
-            )
-            .withLogger(Logger(label: String(describing: type(of: self))))
-            .withTLS(trustRoots: trustRoots)
-            .withServiceProviders([
-                metricsProvider,
-                traceProvider,
-            ])
-            .bind(host: "localhost", port: 0)
-            .get()
+        let trustRoots = TLSConfig.TrustRootsSource.certificates([.bytes(Array(exampleCACert.utf8), format: .pem)])
+        let certificate = TLSConfig.CertificateSource.bytes(Array(exampleServerCert.utf8), format: .pem)
+        let privateKey = TLSConfig.PrivateKeySource.bytes(Array(exampleServerKey.utf8), format: .pem)
 
-        do {
-            let port = try XCTUnwrap(server.channel.localAddress?.port)
-            let result = try await operation("https://localhost:\(port)", trustRoots)
-            try await server.close().get()
-            return result
-        } catch {
-            try await server.close().get()
-            throw error
+        return try await withGRPCServer(
+            transport: .http2NIOPosix(
+                address: .ipv6(host: "::1", port: 0),
+                transportSecurity: .tls(certificateChain: [certificate], privateKey: privateKey)
+            ),
+            services: [metricsProvider, traceProvider]
+        ) { server in
+            let listeningAddress = try await server.listeningAddress
+            let port = try XCTUnwrap(listeningAddress?.ipv6?.port)
+            return try await operation("https://localhost:\(port)", trustRoots)
         }
     }
 }
 
-struct RecordedRequest<ExportRequest>: Sendable where ExportRequest: Sendable {
-    let exportRequest: ExportRequest
-    let context: GRPCAsyncServerCallContext
-    var headers: HPACKHeaders { context.request.headers }
+struct RecordedRequest<Message: Sendable>: Sendable {
+    let exportRequest: ServerRequest<Message>
+    let context: ServerContext
+    var headers: Metadata { exportRequest.metadata }
 }
 
-final class TraceServiceProvider: Sendable, Opentelemetry_Proto_Collector_Trace_V1_TraceServiceAsyncProvider {
+final class TraceServiceProvider: Sendable, Opentelemetry_Proto_Collector_Trace_V1_TraceService.ServiceProtocol {
     typealias ExportRequest = Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest
     typealias ExportResponse = Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceResponse
 
@@ -99,13 +83,16 @@ final class TraceServiceProvider: Sendable, Opentelemetry_Proto_Collector_Trace_
         set { recordedRequestsBox.withLockedValue { $0 = newValue } }
     }
 
-    func export(request: ExportRequest, context: GRPCAsyncServerCallContext) async throws -> ExportResponse {
+    func export(
+        request: ServerRequest<ExportRequest>,
+        context: ServerContext
+    ) async throws -> ServerResponse<ExportResponse> {
         requests.append(RecordedRequest(exportRequest: request, context: context))
-        return ExportResponse()
+        return ServerResponse(message: ExportResponse())
     }
 }
 
-final class MetricsServiceProvider: Sendable, Opentelemetry_Proto_Collector_Metrics_V1_MetricsServiceAsyncProvider {
+final class MetricsServiceProvider: Sendable, Opentelemetry_Proto_Collector_Metrics_V1_MetricsService.ServiceProtocol {
     typealias ExportRequest = Opentelemetry_Proto_Collector_Metrics_V1_ExportMetricsServiceRequest
     typealias ExportResponse = Opentelemetry_Proto_Collector_Metrics_V1_ExportMetricsServiceResponse
 
@@ -115,9 +102,12 @@ final class MetricsServiceProvider: Sendable, Opentelemetry_Proto_Collector_Metr
         set { recordedRequestsBox.withLockedValue { $0 = newValue } }
     }
 
-    func export(request: ExportRequest, context: GRPCAsyncServerCallContext) async throws -> ExportResponse {
+    func export(
+        request: ServerRequest<Opentelemetry_Proto_Collector_Metrics_V1_ExportMetricsServiceRequest>,
+        context: ServerContext
+    ) async throws -> ServerResponse<ExportResponse> {
         requests.append(RecordedRequest(exportRequest: request, context: context))
-        return ExportResponse()
+        return ServerResponse(message: ExportResponse())
     }
 }
 

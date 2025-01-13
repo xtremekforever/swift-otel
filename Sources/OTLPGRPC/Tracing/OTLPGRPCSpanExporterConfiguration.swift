@@ -11,13 +11,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-import NIOHPACK
+import GRPCCore
 import OTel
 
 /// Configuration of an ``OTLPGRPCSpanExporter``.
 public struct OTLPGRPCSpanExporterConfiguration: Sendable {
     let endpoint: OTLPGRPCEndpoint
-    let headers: HPACKHeaders
+    let metadata: Metadata
 
     /// Create a configuration for an ``OTLPGRPCSpanExporter``.
     ///
@@ -30,7 +30,7 @@ public struct OTLPGRPCSpanExporterConfiguration: Sendable {
         environment: OTelEnvironment,
         endpoint: String? = nil,
         shouldUseAnInsecureConnection: Bool? = nil,
-        headers: HPACKHeaders? = nil
+        metadata: Metadata? = nil
     ) throws {
         let shouldUseAnInsecureConnection = try environment.value(
             programmaticOverride: shouldUseAnInsecureConnection,
@@ -57,14 +57,16 @@ public struct OTLPGRPCSpanExporterConfiguration: Sendable {
             }
         ) ?? .default
 
-        self.headers = try environment.value(
-            programmaticOverride: headers,
+        var metadata = try environment.value(
+            programmaticOverride: metadata,
             signalSpecificKey: "OTEL_EXPORTER_OTLP_TRACES_HEADERS",
             sharedKey: "OTEL_EXPORTER_OTLP_HEADERS",
-            transformValue: { value in
+            transformValue: { value -> Metadata? in
                 guard let keyValuePairs = OTelEnvironment.headers(parsingValue: value) else { return nil }
-                return HPACKHeaders(keyValuePairs)
+                return Metadata(keyValuePairs.map { ($0.key, .string($0.value)) })
             }
-        ) ?? [:]
+        ) ?? Metadata()
+        metadata.replaceOrAddString("OTel-OTLP-Exporter-Swift/\(OTelLibrary.version)", forKey: "user-agent")
+        self.metadata = metadata
     }
 }

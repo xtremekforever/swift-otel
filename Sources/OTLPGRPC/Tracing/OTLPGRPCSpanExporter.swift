@@ -48,7 +48,7 @@ public final class OTLPGRPCSpanExporter: OTelSpanExporter {
             group: group,
             requestLogger: requestLogger,
             backgroundActivityLogger: backgroundActivityLogger,
-            trustRoots: .default
+            trustRoots: .systemDefault
         )
     }
 
@@ -57,7 +57,7 @@ public final class OTLPGRPCSpanExporter: OTelSpanExporter {
         group: any EventLoopGroup,
         requestLogger: Logger,
         backgroundActivityLogger: Logger,
-        trustRoots: NIOSSLTrustRoots
+        trustRoots: TLSConfig.TrustRootsSource
     ) {
         self.configuration = configuration
 
@@ -76,19 +76,19 @@ public final class OTLPGRPCSpanExporter: OTelSpanExporter {
             // TODO: Support OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE
         }
 
-        var headers = configuration.headers
-        if !headers.isEmpty {
+        if !configuration.metadata.isEmpty {
             logger.trace("Configured custom request headers.", metadata: [
-                "keys": .array(headers.map { "\($0.name)" }),
+                "keys": .array(configuration.metadata.map { "\($0.key)" }),
             ])
         }
-        headers.replaceOrAdd(name: "user-agent", value: "OTel-OTLP-Exporter-Swift/\(OTelLibrary.version)")
 
         let transport: any ClientTransport
         do {
             transport = try HTTP2ClientTransport.Posix(
-                target: .dns(host: configuration.endpoint.host, port: configuration.endpoint.port),
-                transportSecurity: configuration.endpoint.isInsecure ? .plaintext : .tls,
+                target: .ipv6(host: configuration.endpoint.host, port: configuration.endpoint.port),
+                transportSecurity: configuration.endpoint.isInsecure ? .plaintext : .tls(configure: { config in
+                    config.trustRoots = trustRoots
+                }),
                 eventLoopGroup: group
             )
         } catch {
@@ -128,7 +128,7 @@ public final class OTLPGRPCSpanExporter: OTelSpanExporter {
             ]
         }
 
-        _ = try await client.export(request)
+        _ = try await client.export(request, metadata: configuration.metadata)
     }
 
     /// ``OTLPGRPCSpanExporter`` sends batches of spans as soon as they are received, so this method is a no-op.
