@@ -95,7 +95,7 @@ public final class OTLPGRPCLogEntryExporter: OTelLogRecordExporter {
                                     }
                                     logRecord.severityText = switch log.level {
                                     case .trace: "TRACE"
-                                    case .debug: "DEUG"
+                                    case .debug: "DEBUG"
                                     case .info: "INFO"
                                     case .notice: "NOTICE"
                                     case .warning: "WARNING"
