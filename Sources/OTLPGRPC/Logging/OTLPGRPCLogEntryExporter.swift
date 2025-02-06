@@ -172,3 +172,7 @@ extension Opentelemetry_Proto_Common_V1_ArrayValue {
         }
     }
 }
+
+public struct OTelLogRecordExporterAlreadyShutDownError: Error {
+    public init() {}
+}
