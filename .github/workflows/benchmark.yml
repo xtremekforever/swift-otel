@@ -1,0 +1,51 @@
+name: Benchmark PR vs. main
+
+on:
+  pull_request:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-benchmark
+  cancel-in-progress: true
+
+jobs:
+  benchmark:
+    name: Check benchmark regressions
+    runs-on: ubuntu-22.04
+    timeout-minutes: 15
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Install jemalloc
+        run: sudo apt-get install -y libjemalloc-dev
+
+      - name: Benchmark PR
+        run: |
+          cd Benchmarks
+          swift package --allow-writing-to-directory .benchmarkBaselines/ benchmark baseline update pr
+
+      - name: Benchmark main
+        run: |
+          git switch main
+          cd Benchmarks
+          swift package --allow-writing-to-directory .benchmarkBaselines/ benchmark baseline update main
+
+      - name: Check benchmark delta
+        id: check_delta
+        run: |
+          echo $(date) >> $GITHUB_STEP_SUMMARY
+          echo "BENCHMARK_STATUS=1" >> "$GITHUB_OUTPUT"
+          cd Benchmarks
+          swift package benchmark baseline check main pr --format markdown >> $GITHUB_STEP_SUMMARY
+          echo "BENCHMARK_STATUS=0" >> "$GITHUB_OUTPUT"
+        continue-on-error: true
+
+      - name: Exit with correct status
+        run: |
+          exit ${{ steps.check_delta.outputs.BENCHMARK_STATUS }}

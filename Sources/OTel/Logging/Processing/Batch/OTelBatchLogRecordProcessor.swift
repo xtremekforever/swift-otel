@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift OTel open source project
 //
-// Copyright (c) 2024 Moritz Lang and the Swift OTel project authors
+// Copyright (c) 2024 the Swift OTel project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -24,7 +24,7 @@ public actor OTelBatchLogRecordProcessor<Exporter: OTelLogRecordExporter, Clock:
     OTelLogRecordProcessor,
     Service,
     CustomStringConvertible
-where Clock.Duration == Duration
+    where Clock.Duration == Duration
 {
     public nonisolated let description = "OTelBatchLogRecordProcessor"
 
@@ -33,6 +33,7 @@ where Clock.Duration == Duration
     private let exporter: Exporter
     private let configuration: OTelBatchLogRecordProcessorConfiguration
     private let clock: Clock
+    private let logger = Logger(label: "OTelBatchLogRecordProcessor")
     private let logStream: AsyncStream<OTelLogRecord>
     private let logContinuation: AsyncStream<OTelLogRecord>.Continuation
     private let explicitTickStream: AsyncStream<Void>
@@ -49,15 +50,15 @@ where Clock.Duration == Duration
         (logStream, logContinuation) = AsyncStream.makeStream()
     }
 
-    nonisolated public func onEmit(_ record: inout OTelLogRecord) {
+    public nonisolated func onEmit(_ record: inout OTelLogRecord) {
         logContinuation.yield(record)
     }
 
     private func _onLog(_ log: OTelLogRecord) {
         buffer.append(log)
 
-        if self.buffer.count == self.configuration.maximumQueueSize {
-            self.explicitTick.yield()
+        if buffer.count == configuration.maximumQueueSize {
+            explicitTick.yield()
         }
     }
 
@@ -74,7 +75,7 @@ where Clock.Duration == Duration
                 }
 
                 taskGroup.addTask {
-                    for try await _ in mergedSequence where !(await self.buffer.isEmpty) {
+                    for try await _ in mergedSequence where await !(self.buffer.isEmpty) {
                         await self.tick()
                     }
                 }
@@ -86,8 +87,10 @@ where Clock.Duration == Duration
             self.logContinuation.finish()
         }
 
+        logger.debug("Shutting down.")
         try? await forceFlush()
         await exporter.shutdown()
+        logger.debug("Shut down.")
     }
 
     public func forceFlush() async throws {
@@ -99,7 +102,7 @@ where Clock.Duration == Duration
         if !buffer.isEmpty {
             buffer.removeAll()
 
-            await withThrowingTaskGroup(of: Void.self) { group in
+            try await withThrowingTaskGroup(of: Void.self) { group in
                 for batch in batches {
                     group.addTask { await self.export(batch) }
                 }
@@ -109,14 +112,10 @@ where Clock.Duration == Duration
                     throw CancellationError()
                 }
 
-                do {
-                    // Don't cancel unless it's an error
-                    // A single export shouldn't cancel the other exports
-                    try await group.next()
-                    group.cancelAll()
-                } catch {
-                    group.cancelAll()
-                }
+                defer { group.cancelAll() }
+                // Don't cancel unless it's an error
+                // A single export shouldn't cancel the other exports
+                try await group.next()
             }
         }
 
@@ -140,13 +139,7 @@ where Clock.Duration == Duration
     }
 
     private func export(_ batch: some Collection<OTelLogRecord> & Sendable) async {
-        do {
-            try await exporter.export(batch)
-        } catch is CancellationError {
-            // No-op
-        } catch {
-            // TODO: Should we emit this error somewhere?
-        }
+        try? await exporter.export(batch)
     }
 }
 

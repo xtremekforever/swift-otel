@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift OTel open source project
 //
-// Copyright (c) 2023 Moritz Lang and the Swift OTel project authors
+// Copyright (c) 2024 the Swift OTel project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -21,7 +21,7 @@ final class OTelRandomIDGeneratorTests: XCTestCase {
 
         XCTAssertEqual(
             generator.nextTraceID(),
-            TraceID(bytes: (255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255))
+            TraceID(bytes: .init((255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255)))
         )
     }
 
@@ -52,7 +52,7 @@ final class OTelRandomIDGeneratorTests: XCTestCase {
     func test_spanID_witConstantNumberGenerator_returnsConstantSpanID() {
         let generator = OTelRandomIDGenerator(randomNumberGenerator: ConstantNumberGenerator(value: .max))
 
-        XCTAssertEqual(generator.nextSpanID(), SpanID(bytes: (255, 255, 255, 255, 255, 255, 255, 255)))
+        XCTAssertEqual(generator.nextSpanID(), SpanID(bytes: .init((255, 255, 255, 255, 255, 255, 255, 255))))
     }
 
     func test_spanID_withConstantNumberGenerator_withRandomNumber_returnsRandomSpanID() {

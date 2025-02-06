@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift OTel open source project
 //
-// Copyright (c) 2023 Moritz Lang and the Swift OTel project authors
+// Copyright (c) 2024 the Swift OTel project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -286,6 +286,49 @@ final class OTelTracerTests: XCTestCase {
         let batch = await batches.next()
 
         XCTAssertEqual(try XCTUnwrap(batch).map(\.operationName), ["test"])
+    }
+
+    func test_spanIdentifiedByServiceContext_withoutSpanContext_returnsSpan() {
+        let tracer = OTelTracer(
+            idGenerator: OTelRandomIDGenerator(),
+            sampler: OTelConstantSampler(isOn: true),
+            propagator: OTelW3CPropagator(),
+            processor: OTelNoOpSpanProcessor(),
+            environment: [:],
+            resource: OTelResource()
+        )
+
+        XCTAssertNil(tracer.activeSpan(identifiedBy: .topLevel))
+    }
+
+    func test_spanIdentifiedByServiceContext_withSpanContext_identifyingRecordingSpan_returnsSpan() async {
+        let tracer = OTelTracer(
+            idGenerator: OTelRandomIDGenerator(),
+            sampler: OTelConstantSampler(isOn: true),
+            propagator: OTelW3CPropagator(),
+            processor: OTelNoOpSpanProcessor(),
+            environment: [:],
+            resource: OTelResource()
+        )
+
+        let span = tracer.startSpan("test")
+        XCTAssertIdentical(span, tracer.activeSpan(identifiedBy: span.context))
+    }
+
+    func test_spanIdentifiedByServiceContext_withSpanContext_identifyingEndedSpan_returnsNil() async {
+        let tracer = OTelTracer(
+            idGenerator: OTelRandomIDGenerator(),
+            sampler: OTelConstantSampler(isOn: true),
+            propagator: OTelW3CPropagator(),
+            processor: OTelNoOpSpanProcessor(),
+            environment: [:],
+            resource: OTelResource()
+        )
+
+        let span = tracer.startSpan("test")
+        span.end()
+
+        XCTAssertNil(tracer.activeSpan(identifiedBy: span.context))
     }
 
     // MARK: - Instrument

@@ -3,11 +3,11 @@ on: [push, pull_request]
 jobs:
   soundness:
     name: Soundness Check
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v4.2.2
 
       - name: Bootstrap Mint
         uses: irgaly/setup-mint@v1
@@ -19,7 +19,7 @@ jobs:
 
   unit-test:
     name: Unit Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     strategy:
       fail-fast: false
@@ -28,17 +28,17 @@ jobs:
 
     steps:
       - name: Install Swift
-        uses: vapor/swiftly-action@v0.1
+        uses: vapor/swiftly-action@v0.1.2
         with:
           toolchain: ${{ matrix.swift }}
         env:
           SWIFTLY_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Checkout
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v4.2.2
 
       - name: Cache Swift PM
-        uses: actions/cache@v4.0.2
+        uses: actions/cache@v4.2.0
         with:
           path: .build
           key: ${{ runner.os }}-${{ matrix.swift }}-ci-spm-${{ hashFiles('Package.swift') }}
@@ -63,27 +63,28 @@ jobs:
 
       - name: Upload code coverage report to Codecov
         if: matrix.swift == '5.9'
-        uses: codecov/codecov-action@v4
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        uses: codecov/codecov-action@v5.3.1
         with:
           files: ./info.lcov
+          fail_ci_if_error: true
+          verbose: true
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   compile-counter-example:
     name: Compile Counter Example
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     defaults:
       run:
         working-directory: ./Examples/Counter
     steps:
       - name: Install Swift
-        uses: vapor/swiftly-action@v0.1
+        uses: vapor/swiftly-action@v0.1.2
         with:
           toolchain: latest
         env:
           SWIFTLY_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Checkout
-        uses: actions/checkout@v4.1.7
+        uses: actions/checkout@v4.2.2
       - name: Resolve Swift dependencies
         run: swift package resolve
       - name: Build

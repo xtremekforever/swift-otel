@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift OTel open source project
 //
-// Copyright (c) 2024 Moritz Lang and the Swift OTel project authors
+// Copyright (c) 2024 the Swift OTel project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -41,9 +41,15 @@ extension Histogram: OTelMetricInstrument {
                     min: nil,
                     max: nil,
                     buckets: state.buckets.map {
-                        .init(upperBound: $0.bound.bucketRepresentation, count: UInt64($0.count))
+                        .init(
+                            upperBound: $0.bound.bucketRepresentation,
+                            count: UInt64($0.count)
+                        )
                     } + [
-                        .init(upperBound: .infinity, count: UInt64(state.count)),
+                        .init(
+                            upperBound: .infinity,
+                            count: UInt64(state.countAboveUpperBound)
+                        ),
                     ]
                 )]
             ))

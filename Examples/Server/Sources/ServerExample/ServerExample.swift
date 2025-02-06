@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift OTel open source project
 //
-// Copyright (c) 2024 Moritz Lang and the Swift OTel project authors
+// Copyright (c) 2024 the Swift OTel project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -78,12 +78,8 @@ enum ServerMiddlewareExample {
         router.middlewares.add(TracingMiddleware())
         router.middlewares.add(MetricsMiddleware())
         router.middlewares.add(LogRequestsMiddleware(.info))
-        router.get("hello") { _, context in
-            context.logger.info("Someone visited me, at last!")
-            return "hello"
-        }
+        router.get("hello") { _, _ in "hello" }
         var app = Application(router: router)
-        app.logger.logLevel = .debug
 
         // Add the logger, metrics and tracer lifecycle services to the HTTP server service group and start the application.
         app.addServices(logProcessor, metrics, tracer)

@@ -11,15 +11,16 @@ let package = Package(
         .library(name: "OTLPGRPC", targets: ["OTLPGRPC"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/apple/swift-distributed-tracing.git", from: "1.1.0"),
+        .package(url: "https://github.com/apple/swift-distributed-tracing.git", from: "1.2.0"),
         .package(url: "https://github.com/apple/swift-log.git", from: "1.5.0"),
         .package(url: "https://github.com/apple/swift-collections.git", from: "1.0.0"),
         .package(url: "https://github.com/apple/swift-async-algorithms.git", from: "1.0.0"),
         .package(url: "https://github.com/swift-server/swift-service-lifecycle.git", from: "2.4.1"),
         .package(url: "https://github.com/apple/swift-nio.git", from: "2.0.0"),
+        .package(url: "https://github.com/apple/swift-nio-ssl.git", from: "2.0.0"),
         .package(url: "https://github.com/apple/swift-atomics.git", from: "1.0.2"),
         .package(url: "https://github.com/apple/swift-metrics.git", from: "2.4.1"),
-        .package(url: "https://github.com/slashmo/swift-w3c-trace-context.git", from: "1.0.0-beta.1"),
+        .package(url: "https://github.com/swift-otel/swift-w3c-trace-context.git", exact: "1.0.0-beta.3"),
 
         // MARK: - OTLP
 
@@ -104,6 +105,7 @@ let package = Package(
             dependencies: [
                 .target(name: "OTLPGRPC"),
                 .target(name: "OTelTesting"),
+                .product(name: "NIOSSL", package: "swift-nio-ssl"),
             ],
             swiftSettings: sharedSwiftSettings
         ),

@@ -138,6 +138,12 @@ define contents_xcworkspacedata
 	<Group location="container:" name="Examples">
 	$(foreach example,$(EXAMPLES),<FileRef location="group:$(example)"></FileRef>\n)
 	</Group>
+	<Group location="container:Benchmarks" name="Benchmarks">
+		<FileRef location="group:." name="benchmarks"></FileRef>
+	</Group>
+	<Group location="container:IntegrationTests" name="IntegrationTests">
+		<FileRef location="group:." name="integration-tests"></FileRef>
+	</Group>
 </Workspace>
 endef
 export contents_xcworkspacedata
