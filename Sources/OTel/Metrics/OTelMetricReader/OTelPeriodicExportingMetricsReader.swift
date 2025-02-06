@@ -16,7 +16,7 @@ import Logging
 import ServiceLifecycle
 
 public struct OTelPeriodicExportingMetricsReader<Clock: _Concurrency.Clock> where Clock.Duration == Duration {
-    private let logger = Logger(label: "OTelPeriodicExportingMetricsReader")
+    private let logger: Logger
 
     var resource: OTelResource
     var producer: OTelMetricProducer
@@ -29,13 +29,15 @@ public struct OTelPeriodicExportingMetricsReader<Clock: _Concurrency.Clock> wher
         producer: OTelMetricProducer,
         exporter: OTelMetricExporter,
         configuration: OTelPeriodicExportingMetricsReaderConfiguration,
-        clock: Clock
+        clock: Clock,
+        logger: Logger = .init(label: "OTelPeriodicExportingMetricsReader")
     ) {
         self.resource = resource
         self.producer = producer
         self.exporter = exporter
         self.configuration = configuration
         self.clock = clock
+        self.logger = logger
     }
 
     func tick() async {
@@ -88,12 +90,14 @@ extension OTelPeriodicExportingMetricsReader where Clock == ContinuousClock {
         resource: OTelResource,
         producer: OTelMetricProducer,
         exporter: OTelMetricExporter,
-        configuration: OTelPeriodicExportingMetricsReaderConfiguration
+        configuration: OTelPeriodicExportingMetricsReaderConfiguration,
+        logger: Logger = .init(label: "OTelPeriodicExportingMetricsReader")
     ) {
         self.resource = resource
         self.producer = producer
         self.exporter = exporter
         self.configuration = configuration
         clock = .continuous
+        self.logger = logger
     }
 }
