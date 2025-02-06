@@ -70,7 +70,7 @@ extension OTelPeriodicExportingMetricsReader: CustomStringConvertible, Service {
 
     public func run() async throws {
         let interval = configuration.exportInterval
-        logger.info("Started periodic loop.", metadata: ["interval": "\(interval)"])
+        logger.debug("Started periodic loop.", metadata: ["interval": "\(interval)"])
         for try await _ in AsyncTimerSequence.repeating(every: interval, clock: clock).cancelOnGracefulShutdown() {
             logger.trace("Timer fired.", metadata: ["interval": "\(interval)"])
             await tick()
