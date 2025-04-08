@@ -26,7 +26,7 @@ let package = Package(
 
         .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.0.0"),
         .package(url: "https://github.com/grpc/grpc-swift-protobuf.git", exact: "1.0.0"),
-        .package(url: "https://github.com/grpc/grpc-swift-nio-transport.git", exact: "1.0.0"),
+        .package(url: "https://github.com/grpc/grpc-swift-nio-transport.git", exact: "1.0.3"),
 
         // MARK: - Plugins
 
