@@ -13,8 +13,9 @@
 
 import GRPCCore
 import OTel
-@testable import OTLPGRPC
 import XCTest
+
+@testable import OTLPGRPC
 
 final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
     // MARK: - insecure
@@ -65,7 +66,8 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
             endpoint: "test:1234"
         )
 
-        XCTAssertEqual(configuration.endpoint, OTLPGRPCEndpoint(host: "test", port: 1234, isInsecure: false))
+        XCTAssertEqual(
+            configuration.endpoint, OTLPGRPCEndpoint(host: "test", port: 1234, isInsecure: false))
     }
 
     func test_init_endpoint_programmatic_preferredOverEnvironmentValue() throws {
@@ -74,7 +76,8 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
             endpoint: "test:1234"
         )
 
-        XCTAssertEqual(configuration.endpoint, OTLPGRPCEndpoint(host: "test", port: 1234, isInsecure: false))
+        XCTAssertEqual(
+            configuration.endpoint, OTLPGRPCEndpoint(host: "test", port: 1234, isInsecure: false))
     }
 
     func test_init_endpoint_programmatic_invalid_throwsConfigurationError() throws {
@@ -89,22 +92,26 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
         }
     }
 
-    func test_init_endpoint_programatic_valid_withHTTPSScheme_overridesSpecificInsecureFlag() throws {
+    func test_init_endpoint_programatic_valid_withHTTPSScheme_overridesSpecificInsecureFlag() throws
+    {
         let configuration = try OTLPGRPCSpanExporterConfiguration(
             environment: ["OTEL_EXPORTER_OTLP_TRACES_INSECURE": "true"],
             endpoint: "https://test:1234"
         )
 
-        XCTAssertEqual(configuration.endpoint, OTLPGRPCEndpoint(host: "test", port: 1234, isInsecure: false))
+        XCTAssertEqual(
+            configuration.endpoint, OTLPGRPCEndpoint(host: "test", port: 1234, isInsecure: false))
     }
 
-    func test_init_endpoint_programatic_valid_withHTTPScheme_overridesSpecificInsecureFlag() throws {
+    func test_init_endpoint_programatic_valid_withHTTPScheme_overridesSpecificInsecureFlag() throws
+    {
         let configuration = try OTLPGRPCSpanExporterConfiguration(
             environment: ["OTEL_EXPORTER_OTLP_TRACES_INSECURE": "false"],
             endpoint: "http://test:1234"
         )
 
-        XCTAssertEqual(configuration.endpoint, OTLPGRPCEndpoint(host: "test", port: 1234, isInsecure: true))
+        XCTAssertEqual(
+            configuration.endpoint, OTLPGRPCEndpoint(host: "test", port: 1234, isInsecure: true))
     }
 
     func test_init_endpoint_specificEnvironment_valid() throws {
@@ -113,7 +120,8 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
             "OTEL_EXPORTER_OTLP_ENDPOINT": "common:1234",
         ])
 
-        XCTAssertEqual(configuration.endpoint, OTLPGRPCEndpoint(host: "traces", port: 1234, isInsecure: false))
+        XCTAssertEqual(
+            configuration.endpoint, OTLPGRPCEndpoint(host: "traces", port: 1234, isInsecure: false))
     }
 
     func test_init_endpoint_specificEnvironment_invalid_throwsEnvironmentValueError() throws {
@@ -139,16 +147,17 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
 
     func test_init_endpoint_commonEnvironment_valid() throws {
         let configuration = try OTLPGRPCSpanExporterConfiguration(environment: [
-            "OTEL_EXPORTER_OTLP_ENDPOINT": "common:1234",
+            "OTEL_EXPORTER_OTLP_ENDPOINT": "common:1234"
         ])
 
-        XCTAssertEqual(configuration.endpoint, OTLPGRPCEndpoint(host: "common", port: 1234, isInsecure: false))
+        XCTAssertEqual(
+            configuration.endpoint, OTLPGRPCEndpoint(host: "common", port: 1234, isInsecure: false))
     }
 
     func test_init_endpoint_commonEnvironment_invalid_throwsEnvironmentValueError() throws {
         do {
             let configuration = try OTLPGRPCSpanExporterConfiguration(environment: [
-                "OTEL_EXPORTER_OTLP_ENDPOINT": "host-without-port",
+                "OTEL_EXPORTER_OTLP_ENDPOINT": "host-without-port"
             ])
             XCTFail("Expected configuration error, got configuration: \(configuration)")
         } catch let error as OTelEnvironmentValueError {
@@ -172,7 +181,10 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
     // MARK: - headers
 
     func test_init_headers_programmatic() throws {
-        let metadata: Metadata = ["test": "42"]
+        let metadata: Metadata = [
+            "test": "42",
+            "user-agent": "OTel-OTLP-Exporter-Swift/\(OTelLibrary.version)",
+        ]
 
         let configuration = try OTLPGRPCSpanExporterConfiguration(
             environment: [:],
@@ -183,7 +195,10 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
     }
 
     func test_init_headers_programmatic_preferredOverEnvironmentValue() throws {
-        let metadata: Metadata = ["programmatic": "42"]
+        let metadata: Metadata = [
+            "programmatic": "42",
+            "user-agent": "OTel-OTLP-Exporter-Swift/\(OTelLibrary.version)",
+        ]
 
         let configuration = try OTLPGRPCSpanExporterConfiguration(
             environment: ["OTEL_EXPORTER_OTLP_TRACES_HEADERS": "environment=42"],
@@ -198,7 +213,13 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
             environment: ["OTEL_EXPORTER_OTLP_TRACES_HEADERS": "test=42"]
         )
 
-        XCTAssertEqual(configuration.metadata, ["test": "42"])
+        XCTAssertEqual(
+            configuration.metadata,
+            [
+                "test": "42",
+                "user-agent": "OTel-OTLP-Exporter-Swift/\(OTelLibrary.version)",
+            ]
+        )
     }
 
     func test_init_headers_specificEnvironment_multipleKeyValuePairs() throws {
@@ -206,7 +227,12 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
             environment: ["OTEL_EXPORTER_OTLP_TRACES_HEADERS": "test1=42,test2=84"]
         )
 
-        XCTAssertEqual(configuration.metadata, ["test1": "42", "test2": "84"])
+        XCTAssertEqual(
+            configuration.metadata,
+            [
+                "test1": "42", "test2": "84",
+                "user-agent": "OTel-OTLP-Exporter-Swift/\(OTelLibrary.version)",
+            ])
     }
 
     func test_init_headers_specificEnvironment_keepsDuplicateEntries() throws {
@@ -214,7 +240,12 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
             environment: ["OTEL_EXPORTER_OTLP_TRACES_HEADERS": "test=42,test=84"]
         )
 
-        XCTAssertEqual(configuration.metadata, ["test": "42", "test": "84"])
+        XCTAssertEqual(
+            configuration.metadata,
+            [
+                "test": "42", "test": "84",
+                "user-agent": "OTel-OTLP-Exporter-Swift/\(OTelLibrary.version)",
+            ])
     }
 
     func test_init_headers_specificEnvironment_stripsWhitespacesInKey() throws {
@@ -222,7 +253,12 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
             environment: ["OTEL_EXPORTER_OTLP_TRACES_HEADERS": " test =42"]
         )
 
-        XCTAssertEqual(configuration.metadata, ["test": "42"])
+        XCTAssertEqual(
+            configuration.metadata,
+            [
+                "test": "42",
+                "user-agent": "OTel-OTLP-Exporter-Swift/\(OTelLibrary.version)",
+            ])
     }
 
     func test_init_headers_specificEnvironment_stripsWhitespacesInValue() throws {
@@ -230,6 +266,11 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
             environment: ["OTEL_EXPORTER_OTLP_TRACES_HEADERS": "test=   42  "]
         )
 
-        XCTAssertEqual(configuration.metadata, ["test": "42"])
+        XCTAssertEqual(
+            configuration.metadata,
+            [
+                "test": "42",
+                "user-agent": "OTel-OTLP-Exporter-Swift/\(OTelLibrary.version)",
+            ])
     }
 }
