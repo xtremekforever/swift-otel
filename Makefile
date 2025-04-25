@@ -32,36 +32,6 @@ $(EXAMPLES_DIR)/%.build:
 .PHONY: examples
 examples: $(patsubst %,%.build,$(EXAMPLES))  # Build example packages.
 
-# Download protoc plugins
-# -----------------------------------------------------------------------------
-GRPC_SWIFT_VERSION = 1.21.0
-PROTOC_GRPC_SWIFT_PLUGINS_SHA256SUM = d5316b166b7e9bbb79e1aec4e00f14e523c99d406d39009aeb7d423f4bd3b2ca
-PROTOC_GRPC_SWIFT_PLUGINS_DOWNLOAD_CACHE_DIR = .protoc-grpc-swift-plugins.download
-PROTOC_GRPC_SWIFT_PLUGINS_URL = https://github.com/grpc/grpc-swift/releases/download/$(GRPC_SWIFT_VERSION)/protoc-grpc-swift-plugins-$(GRPC_SWIFT_VERSION).zip
-PROTOC_GRPC_SWIFT_PLUGINS_ZIP = $(PROTOC_GRPC_SWIFT_PLUGINS_DOWNLOAD_CACHE_DIR)/$(notdir $(PROTOC_GRPC_SWIFT_PLUGINS_URL))
-PROTOC_GRPC_SWIFT_PLUGINS_ROOT ?= .protoc-grpc-swift-plugins
-PROTOC_GEN_SWIFT ?= $(PROTOC_GRPC_SWIFT_PLUGINS_ROOT)/bin/protoc-gen-swift
-PROTOC_GEN_GRPC_SWIFT ?= $(PROTOC_GRPC_SWIFT_PLUGINS_ROOT)/bin/protoc-gen-grpc-swift
-
-$(PROTOC_GRPC_SWIFT_PLUGINS_ZIP):
-	curl -L --create-dirs -o $@ $(PROTOC_GRPC_SWIFT_PLUGINS_URL)
-	echo "$(PROTOC_GRPC_SWIFT_PLUGINS_SHA256SUM) $@" | sha256sum --check
-
-$(PROTOC_GRPC_SWIFT_PLUGINS_ROOT): $(PROTOC_GRPC_SWIFT_PLUGINS_ZIP)
-	unzip -o -d $@ $<
-	test -x $(PROTOC_GEN_SWIFT)
-	test -x $(PROTOC_GEN_GRPC_SWIFT)
-	touch $(PROTOC_GEN_SWIFT) $(PROTOC_GEN_GRPC_SWIFT)
-
-$(PROTOC_GEN_SWIFT) $(PROTOC_GEN_GRPC_SWIFT): $(PROTOC_GRPC_SWIFT_PLUGINS_ROOT)
-
-.PHONY: download-protoc-plugins
-download-protoc-plugins: $(PROTOC_GEN_SWIFT) $(PROTOC_GEN_GRPC_SWIFT)
-
-.PHONY: clean-download-cache
-clean-download-cache:
-	-rm -rf $(PROTOC_GRPC_SWIFT_PLUGINS_DOWNLOAD_CACHE_DIR)
-
 # Code generation
 # -----------------------------------------------------------------------------
 PROTO_ROOT = opentelemetry-proto
@@ -86,6 +56,15 @@ OTLP_CORE_SWIFTS = $(patsubst  $(PROTO_ROOT)/%.proto,$(OTLP_CORE_SWIFT_ROOT)/%.p
 OTLP_CLIENT_GRPC_SWIFTS = $(subst $(PROTO_ROOT),$(OTLP_CLIENT_GRPC_SWIFT_ROOT),$(OTLP_GRPC_PROTOS:.proto=.pb.swift) $(OTLP_GRPC_PROTOS:.proto=.grpc.swift))
 OTLP_SERVER_GRPC_SWIFTS = $(subst $(PROTO_ROOT),$(OTLP_SERVER_GRPC_SWIFT_ROOT),$(OTLP_GRPC_PROTOS:.proto=.pb.swift) $(OTLP_GRPC_PROTOS:.proto=.grpc.swift))
 
+PROTOC_GEN_SWIFT = .build/debug/protoc-gen-swift
+PROTOC_GEN_GRPC_SWIFT = .build/debug/protoc-gen-grpc-swift
+
+$(PROTOC_GEN_SWIFT):
+	swift build --product protoc-gen-swift
+
+$(PROTOC_GEN_GRPC_SWIFT):
+	swift build --product protoc-gen-grpc-swift
+
 $(OTLP_CORE_SWIFTS): $(OTLP_CORE_PROTOS) $(PROTO_MODULEMAP) $(PROTOC_GEN_SWIFT)
 	@mkdir -pv $(OTLP_CORE_SWIFT_ROOT)
 	protoc $(OTLP_CORE_PROTOS) \
@@ -95,10 +74,11 @@ $(OTLP_CORE_SWIFTS): $(OTLP_CORE_PROTOS) $(PROTO_MODULEMAP) $(PROTOC_GEN_SWIFT)
 		--swift_opt=Visibility=Public \
 		--experimental_allow_proto3_optional \
 
-$(OTLP_CLIENT_GRPC_SWIFTS): $(OTLP_GRPC_PROTOS) $(PROTO_MODULEMAP) $(PROTOC_GEN_GRPC_SWIFT)
+$(OTLP_CLIENT_GRPC_SWIFTS): $(OTLP_GRPC_PROTOS) $(PROTO_MODULEMAP) $(PROTOC_GEN_SWIFT) $(PROTOC_GEN_GRPC_SWIFT)
 	@mkdir -pv $(OTLP_CLIENT_GRPC_SWIFT_ROOT)
 	protoc $(OTLP_GRPC_PROTOS) \
 		--proto_path=$(PROTO_ROOT) \
+		--plugin=$(PROTOC_GEN_SWIFT) \
 		--plugin=$(PROTOC_GEN_GRPC_SWIFT) \
 		--swift_out=$(OTLP_CLIENT_GRPC_SWIFT_ROOT) \
 		--swift_opt=ProtoPathModuleMappings=$(PROTO_MODULEMAP) \
@@ -108,6 +88,7 @@ $(OTLP_SERVER_GRPC_SWIFTS): $(OTLP_GRPC_PROTOS) $(PROTO_MODULEMAP) $(PROTOC_GEN_
 	@mkdir -pv $(OTLP_SERVER_GRPC_SWIFT_ROOT)
 	protoc $(OTLP_GRPC_PROTOS) \
 		--proto_path=$(PROTO_ROOT) \
+		--plugin=$(PROTOC_GEN_SWIFT) \
 		--plugin=$(PROTOC_GEN_GRPC_SWIFT) \
 		--swift_out=$(OTLP_SERVER_GRPC_SWIFT_ROOT) \
 		--swift_opt=ProtoPathModuleMappings=$(PROTO_MODULEMAP) \

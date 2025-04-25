@@ -12,7 +12,8 @@
 //===----------------------------------------------------------------------===//
 
 import struct Foundation.URL
-import GRPC
+import GRPCCore
+import GRPCNIOTransportHTTP2
 import Logging
 import NIO
 import NIOHPACK
@@ -24,8 +25,9 @@ import Tracing
 /// A span exporter emitting span batches to an OTel collector via gRPC.
 public final class OTLPGRPCSpanExporter: OTelSpanExporter {
     private let configuration: OTLPGRPCSpanExporterConfiguration
-    private let connection: ClientConnection
-    private let client: Opentelemetry_Proto_Collector_Trace_V1_TraceServiceAsyncClient
+    private let client: Opentelemetry_Proto_Collector_Trace_V1_TraceService.Client<HTTP2ClientTransport.Posix>
+    private let grpcClient: GRPCClient<HTTP2ClientTransport.Posix>
+    private let grpcClientTask: Task<Void, any Error>
     private let logger = Logger(label: String(describing: OTLPGRPCSpanExporter.self))
 
     /// Create an OTLP gRPC span exporter.
@@ -46,7 +48,7 @@ public final class OTLPGRPCSpanExporter: OTelSpanExporter {
             group: group,
             requestLogger: requestLogger,
             backgroundActivityLogger: backgroundActivityLogger,
-            trustRoots: .default
+            trustRoots: .systemDefault
         )
     }
 
@@ -55,7 +57,7 @@ public final class OTLPGRPCSpanExporter: OTelSpanExporter {
         group: any EventLoopGroup,
         requestLogger: Logger,
         backgroundActivityLogger: Logger,
-        trustRoots: NIOSSLTrustRoots
+        trustRoots: TLSConfig.TrustRootsSource
     ) {
         self.configuration = configuration
 
@@ -64,43 +66,46 @@ public final class OTLPGRPCSpanExporter: OTelSpanExporter {
                 "host": "\(configuration.endpoint.host)",
                 "port": "\(configuration.endpoint.port)",
             ])
-            connection = ClientConnection.insecure(group: group)
-                .withBackgroundActivityLogger(backgroundActivityLogger)
-                .connect(host: configuration.endpoint.host, port: configuration.endpoint.port)
         } else {
             logger.debug("Using secure connection.", metadata: [
                 "host": "\(configuration.endpoint.host)",
                 "port": "\(configuration.endpoint.port)",
             ])
-            connection = ClientConnection
-                .usingPlatformAppropriateTLS(for: group)
-                .withTLS(trustRoots: trustRoots)
-                .withBackgroundActivityLogger(backgroundActivityLogger)
-                // TODO: Support OTEL_EXPORTER_OTLP_CERTIFICATE
-                // TODO: Support OTEL_EXPORTER_OTLP_CLIENT_KEY
-                // TODO: Support OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE
-                .connect(host: configuration.endpoint.host, port: configuration.endpoint.port)
+            // TODO: Support OTEL_EXPORTER_OTLP_CERTIFICATE
+            // TODO: Support OTEL_EXPORTER_OTLP_CLIENT_KEY
+            // TODO: Support OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE
         }
 
-        var headers = configuration.headers
-        if !headers.isEmpty {
+        if !configuration.metadata.isEmpty {
             logger.trace("Configured custom request headers.", metadata: [
-                "keys": .array(headers.map { "\($0.name)" }),
+                "keys": .array(configuration.metadata.map { "\($0.key)" }),
             ])
         }
-        headers.replaceOrAdd(name: "user-agent", value: "OTel-OTLP-Exporter-Swift/\(OTelLibrary.version)")
 
-        client = Opentelemetry_Proto_Collector_Trace_V1_TraceServiceAsyncClient(
-            channel: connection,
-            defaultCallOptions: .init(customMetadata: headers, logger: requestLogger)
+        let transport: HTTP2ClientTransport.Posix
+        do {
+            transport = try HTTP2ClientTransport.Posix(
+                target: .ipv6(host: configuration.endpoint.host, port: configuration.endpoint.port),
+                transportSecurity: configuration.endpoint.isInsecure ? .plaintext : .tls(configure: { config in
+                    config.trustRoots = trustRoots
+                }),
+                eventLoopGroup: group
+            )
+        } catch {
+            preconditionFailure("Failed to create HTTP2ClientTransport: \(error)")
+        }
+
+        let grpcClient = GRPCClient(transport: transport)
+        self.grpcClient = grpcClient
+        client = Opentelemetry_Proto_Collector_Trace_V1_TraceService.Client(
+            wrapping: GRPCClient(transport: transport)
         )
+        grpcClientTask = Task {
+            try await grpcClient.runConnections()
+        }
     }
 
     public func export(_ batch: some Collection<OTelFinishedSpan>) async throws {
-        if case .shutdown = connection.connectivity.state {
-            logger.error("Attempted to export batch while already being shut down.")
-            throw OTelSpanExporterAlreadyShutDownError()
-        }
         guard let firstSpanResource = batch.first?.resource else { return }
 
         let request = Opentelemetry_Proto_Collector_Trace_V1_ExportTraceServiceRequest.with { request in
@@ -123,17 +128,15 @@ public final class OTLPGRPCSpanExporter: OTelSpanExporter {
             ]
         }
 
-        _ = try await client.export(request)
+        _ = try await client.export(request, metadata: configuration.metadata)
     }
 
     /// ``OTLPGRPCSpanExporter`` sends batches of spans as soon as they are received, so this method is a no-op.
     public func forceFlush() async throws {}
 
     public func shutdown() async {
-        let promise = connection.eventLoop.makePromise(of: Void.self)
-
-        connection.closeGracefully(deadline: .now() + .milliseconds(500), promise: promise)
-
-        try? await promise.futureResult.get()
+        // TODO: How do we replicate a graceful shut down timeout
+        grpcClient.beginGracefulShutdown()
+        try? await grpcClientTask.value
     }
 }

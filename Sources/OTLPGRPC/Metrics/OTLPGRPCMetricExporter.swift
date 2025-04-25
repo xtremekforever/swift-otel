@@ -11,7 +11,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-import GRPC
+import GRPCCore
+import GRPCNIOTransportHTTP2
 import Logging
 import NIO
 import NIOHPACK
@@ -22,8 +23,9 @@ import OTLPCore
 /// Exports metrics to an OTel collector using OTLP/gRPC.
 public final class OTLPGRPCMetricExporter: OTelMetricExporter {
     private let configuration: OTLPGRPCMetricExporterConfiguration
-    private let connection: ClientConnection
-    private let client: Opentelemetry_Proto_Collector_Metrics_V1_MetricsServiceAsyncClient
+    private let client: Opentelemetry_Proto_Collector_Metrics_V1_MetricsService.Client<HTTP2ClientTransport.Posix>
+    private let grpcClient: GRPCClient<HTTP2ClientTransport.Posix>
+    private let grpcClientTask: Task<Void, any Error>
     private let logger = Logger(label: String(describing: OTLPGRPCMetricExporter.self))
 
     public convenience init(
@@ -55,22 +57,14 @@ public final class OTLPGRPCMetricExporter: OTelMetricExporter {
                 "host": "\(configuration.endpoint.host)",
                 "port": "\(configuration.endpoint.port)",
             ])
-            connection = ClientConnection.insecure(group: group)
-                .withBackgroundActivityLogger(backgroundActivityLogger)
-                .connect(host: configuration.endpoint.host, port: configuration.endpoint.port)
         } else {
             logger.debug("Using secure connection.", metadata: [
                 "host": "\(configuration.endpoint.host)",
                 "port": "\(configuration.endpoint.port)",
             ])
-            connection = ClientConnection
-                .usingPlatformAppropriateTLS(for: group)
-                .withTLS(trustRoots: trustRoots)
-                .withBackgroundActivityLogger(backgroundActivityLogger)
-                // TODO: Support OTEL_EXPORTER_OTLP_CERTIFICATE
-                // TODO: Support OTEL_EXPORTER_OTLP_CLIENT_KEY
-                // TODO: Support OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE
-                .connect(host: configuration.endpoint.host, port: configuration.endpoint.port)
+            // TODO: Support OTEL_EXPORTER_OTLP_CERTIFICATE
+            // TODO: Support OTEL_EXPORTER_OTLP_CLIENT_KEY
+            // TODO: Support OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE
         }
 
         var headers = configuration.headers
@@ -81,17 +75,28 @@ public final class OTLPGRPCMetricExporter: OTelMetricExporter {
         }
         headers.replaceOrAdd(name: "user-agent", value: "OTel-OTLP-Exporter-Swift/\(OTelLibrary.version)")
 
-        client = Opentelemetry_Proto_Collector_Metrics_V1_MetricsServiceAsyncClient(
-            channel: connection,
-            defaultCallOptions: .init(customMetadata: headers, logger: requestLogger)
+        let transport: HTTP2ClientTransport.Posix
+        do {
+            transport = try HTTP2ClientTransport.Posix(
+                target: .dns(host: configuration.endpoint.host, port: configuration.endpoint.port),
+                transportSecurity: configuration.endpoint.isInsecure ? .plaintext : .tls,
+                eventLoopGroup: group
+            )
+        } catch {
+            preconditionFailure("Failed to create HTTP2ClientTransport: \(error)")
+        }
+
+        let grpcClient = GRPCClient(transport: transport)
+        self.grpcClient = grpcClient
+        client = Opentelemetry_Proto_Collector_Metrics_V1_MetricsService.Client(
+            wrapping: GRPCClient(transport: transport)
         )
+        grpcClientTask = Task {
+            try await grpcClient.runConnections()
+        }
     }
 
     public func export(_ batch: some Collection<OTelResourceMetrics> & Sendable) async throws {
-        if case .shutdown = connection.connectivity.state {
-            logger.error("Attempted to export batch while already being shut down.")
-            throw OTelMetricExporterAlreadyShutDownError()
-        }
         let request = Opentelemetry_Proto_Collector_Metrics_V1_ExportMetricsServiceRequest.with { request in
             request.resourceMetrics = batch.map(Opentelemetry_Proto_Metrics_V1_ResourceMetrics.init)
         }
@@ -104,8 +109,8 @@ public final class OTLPGRPCMetricExporter: OTelMetricExporter {
     }
 
     public func shutdown() async {
-        let promise = connection.eventLoop.makePromise(of: Void.self)
-        connection.closeGracefully(deadline: .now() + .milliseconds(500), promise: promise)
-        try? await promise.futureResult.get()
+        // TODO: How do we replicate a graceful shut down timeout
+        grpcClient.beginGracefulShutdown()
+        try? await grpcClientTask.value
     }
 }

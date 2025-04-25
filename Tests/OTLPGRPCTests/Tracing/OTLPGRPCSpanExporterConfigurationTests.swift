@@ -11,7 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-import NIOHPACK
+import GRPCCore
 import OTel
 @testable import OTLPGRPC
 import XCTest
@@ -172,25 +172,25 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
     // MARK: - headers
 
     func test_init_headers_programmatic() throws {
-        let headers: HPACKHeaders = ["test": "42"]
+        let metadata: Metadata = ["test": "42"]
 
         let configuration = try OTLPGRPCSpanExporterConfiguration(
             environment: [:],
-            headers: headers
+            metadata: metadata
         )
 
-        XCTAssertEqual(configuration.headers, headers)
+        XCTAssertEqual(configuration.metadata, metadata)
     }
 
     func test_init_headers_programmatic_preferredOverEnvironmentValue() throws {
-        let headers: HPACKHeaders = ["programmatic": "42"]
+        let metadata: Metadata = ["programmatic": "42"]
 
         let configuration = try OTLPGRPCSpanExporterConfiguration(
             environment: ["OTEL_EXPORTER_OTLP_TRACES_HEADERS": "environment=42"],
-            headers: headers
+            metadata: metadata
         )
 
-        XCTAssertEqual(configuration.headers, headers)
+        XCTAssertEqual(configuration.metadata, metadata)
     }
 
     func test_init_headers_specificEnvironment_singleKeyValuePair() throws {
@@ -198,7 +198,7 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
             environment: ["OTEL_EXPORTER_OTLP_TRACES_HEADERS": "test=42"]
         )
 
-        XCTAssertEqual(configuration.headers, ["test": "42"])
+        XCTAssertEqual(configuration.metadata, ["test": "42"])
     }
 
     func test_init_headers_specificEnvironment_multipleKeyValuePairs() throws {
@@ -206,7 +206,7 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
             environment: ["OTEL_EXPORTER_OTLP_TRACES_HEADERS": "test1=42,test2=84"]
         )
 
-        XCTAssertEqual(configuration.headers, ["test1": "42", "test2": "84"])
+        XCTAssertEqual(configuration.metadata, ["test1": "42", "test2": "84"])
     }
 
     func test_init_headers_specificEnvironment_keepsDuplicateEntries() throws {
@@ -214,7 +214,7 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
             environment: ["OTEL_EXPORTER_OTLP_TRACES_HEADERS": "test=42,test=84"]
         )
 
-        XCTAssertEqual(configuration.headers, ["test": "42", "test": "84"])
+        XCTAssertEqual(configuration.metadata, ["test": "42", "test": "84"])
     }
 
     func test_init_headers_specificEnvironment_stripsWhitespacesInKey() throws {
@@ -222,7 +222,7 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
             environment: ["OTEL_EXPORTER_OTLP_TRACES_HEADERS": " test =42"]
         )
 
-        XCTAssertEqual(configuration.headers, ["test": "42"])
+        XCTAssertEqual(configuration.metadata, ["test": "42"])
     }
 
     func test_init_headers_specificEnvironment_stripsWhitespacesInValue() throws {
@@ -230,6 +230,6 @@ final class OTLPGRPCSpanExporterConfigurationTests: XCTestCase {
             environment: ["OTEL_EXPORTER_OTLP_TRACES_HEADERS": "test=   42  "]
         )
 
-        XCTAssertEqual(configuration.headers, ["test": "42"])
+        XCTAssertEqual(configuration.metadata, ["test": "42"])
     }
 }

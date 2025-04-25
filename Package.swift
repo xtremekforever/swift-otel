@@ -5,7 +5,7 @@ let sharedSwiftSettings: [SwiftSetting] = [.enableExperimentalFeature("StrictCon
 
 let package = Package(
     name: "swift-otel",
-    platforms: [.macOS(.v13)],
+    platforms: [.macOS("15.0")],
     products: [
         .library(name: "OTel", targets: ["OTel"]),
         .library(name: "OTLPGRPC", targets: ["OTLPGRPC"]),
@@ -25,8 +25,8 @@ let package = Package(
         // MARK: - OTLP
 
         .package(url: "https://github.com/apple/swift-protobuf.git", from: "1.0.0"),
-        .package(url: "https://github.com/grpc/grpc-swift.git", from: "1.0.0"),
-        .package(url: "https://github.com/apple/swift-nio-http2.git", from: "1.23.1"),
+        .package(url: "https://github.com/grpc/grpc-swift-protobuf.git", exact: "1.0.0"),
+        .package(url: "https://github.com/grpc/grpc-swift-nio-transport.git", exact: "1.0.3"),
 
         // MARK: - Plugins
 
@@ -94,8 +94,8 @@ let package = Package(
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Tracing", package: "swift-distributed-tracing"),
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
-                .product(name: "GRPC", package: "grpc-swift"),
-                .product(name: "NIOHTTP2", package: "swift-nio-http2"),
+                .product(name: "GRPCNIOTransportHTTP2", package: "grpc-swift-nio-transport"),
+                .product(name: "GRPCProtobuf", package: "grpc-swift-protobuf"),
                 .product(name: "W3CTraceContext", package: "swift-w3c-trace-context"),
             ],
             swiftSettings: sharedSwiftSettings
