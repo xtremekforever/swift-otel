@@ -11,20 +11,23 @@
 //
 //===----------------------------------------------------------------------===//
 
-import GRPC
+import GRPCCore
+import GRPCNIOTransportHTTP2
 import Logging
 import NIO
 import NIOHPACK
 import NIOSSL
-@_spi(Logging) import OTel
 @_spi(Logging) import OTLPCore
+@_spi(Logging) import OTel
 
 /// Exports logs to an OTel collector using OTLP/gRPC.
 @_spi(Logging)
 public final class OTLPGRPCLogEntryExporter: OTelLogRecordExporter {
     private let configuration: OTLPGRPCLogEntryExporterConfiguration
-    private let connection: ClientConnection
-    private let client: Opentelemetry_Proto_Collector_Logs_V1_LogsServiceAsyncClient
+    private let client:
+        Opentelemetry_Proto_Collector_Logs_V1_LogsService.Client<HTTP2ClientTransport.Posix>
+    private let grpcClient: GRPCClient<HTTP2ClientTransport.Posix>
+    private let grpcClientTask: Task<Void, any Error>
     private let logger = Logger(label: String(describing: OTLPGRPCLogEntryExporter.self))
 
     public init(
@@ -35,47 +38,64 @@ public final class OTLPGRPCLogEntryExporter: OTelLogRecordExporter {
     ) {
         self.configuration = configuration
 
-        var connectionConfiguration = ClientConnection.Configuration.default(
-            target: .host(configuration.endpoint.host, port: configuration.endpoint.port),
-            eventLoopGroup: group
-        )
-
         if configuration.endpoint.isInsecure {
-            logger.debug("Using insecure connection.", metadata: [
-                "host": "\(configuration.endpoint.host)",
-                "port": "\(configuration.endpoint.port)",
-            ])
+            logger.debug(
+                "Using insecure connection.",
+                metadata: [
+                    "host": "\(configuration.endpoint.host)",
+                    "port": "\(configuration.endpoint.port)",
+                ])
+        } else {
+            logger.debug(
+                "Using secure connection.",
+                metadata: [
+                    "host": "\(configuration.endpoint.host)",
+                    "port": "\(configuration.endpoint.port)",
+                ]
+            )
+
+            // TODO: Support OTEL_EXPORTER_OTLP_CERTIFICATE
+            // TODO: Support OTEL_EXPORTER_OTLP_CLIENT_KEY
+            // TODO: Support OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE
         }
-    
-        // TODO: Support OTEL_EXPORTER_OTLP_CERTIFICATE
-        // TODO: Support OTEL_EXPORTER_OTLP_CLIENT_KEY
-        // TODO: Support OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE
 
         var headers = configuration.headers
         if !headers.isEmpty {
-            logger.trace("Configured custom request headers.", metadata: [
-                "keys": .array(headers.map { "\($0.name)" }),
-            ])
+            logger.trace(
+                "Configured custom request headers.",
+                metadata: [
+                    "keys": .array(headers.map { "\($0.name)" })
+                ])
         }
-        headers.replaceOrAdd(name: "user-agent", value: "OTel-OTLP-Exporter-Swift/\(OTelLibrary.version)")
+        headers.replaceOrAdd(
+            name: "user-agent", value: "OTel-OTLP-Exporter-Swift/\(OTelLibrary.version)")
 
-        connectionConfiguration.backgroundActivityLogger = backgroundActivityLogger
-        connection = ClientConnection(configuration: connectionConfiguration)
+        let transport: HTTP2ClientTransport.Posix
+        do {
+            transport = try HTTP2ClientTransport.Posix(
+                target: .dns(host: configuration.endpoint.host, port: configuration.endpoint.port),
+                transportSecurity: configuration.endpoint.isInsecure ? .plaintext : .tls,
+                eventLoopGroup: group
+            )
+        } catch {
+            preconditionFailure("Failed to create HTTP2ClientTransport: \(error)")
+        }
 
-        client = Opentelemetry_Proto_Collector_Logs_V1_LogsServiceAsyncClient(
-            channel: connection,
-            defaultCallOptions: .init(customMetadata: headers, logger: requestLogger)
+        let grpcClient = GRPCClient(transport: transport)
+        self.grpcClient = grpcClient
+        client = Opentelemetry_Proto_Collector_Logs_V1_LogsService.Client(
+            wrapping: GRPCClient(transport: transport)
         )
+        self.grpcClientTask = Task {
+            try await grpcClient.runConnections()
+        }
     }
 
     public func export(_ batch: some Collection<OTelLogRecord> & Sendable) async throws {
-        if case .shutdown = connection.connectivity.state {
-            throw OTelLogRecordExporterAlreadyShutDownError()
-        }
-
         guard !batch.isEmpty else { return }
 
-        let request = Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest.with { request in
+        let request = Opentelemetry_Proto_Collector_Logs_V1_ExportLogsServiceRequest.with {
+            request in
             request.resourceLogs = [
                 Opentelemetry_Proto_Logs_V1_ResourceLogs.with { resourceLog in
                     resourceLog.scopeLogs = [
@@ -84,24 +104,26 @@ public final class OTLPGRPCLogEntryExporter: OTelLogRecordExporter {
                                 Opentelemetry_Proto_Logs_V1_LogRecord.with { logRecord in
                                     logRecord.timeUnixNano = log.timeNanosecondsSinceEpoch
                                     logRecord.observedTimeUnixNano = log.timeNanosecondsSinceEpoch
-                                    logRecord.severityNumber = switch log.level {
-                                    case .trace: .trace
-                                    case .debug: .debug
-                                    case .info: .info
-                                    case .notice: .info4
-                                    case .warning: .warn
-                                    case .error: .error
-                                    case .critical: .fatal
-                                    }
-                                    logRecord.severityText = switch log.level {
-                                    case .trace: "TRACE"
-                                    case .debug: "DEBUG"
-                                    case .info: "INFO"
-                                    case .notice: "NOTICE"
-                                    case .warning: "WARNING"
-                                    case .error: "ERROR"
-                                    case .critical: "CRITICAL"
-                                    }
+                                    logRecord.severityNumber =
+                                        switch log.level {
+                                        case .trace: .trace
+                                        case .debug: .debug
+                                        case .info: .info
+                                        case .notice: .info4
+                                        case .warning: .warn
+                                        case .error: .error
+                                        case .critical: .fatal
+                                        }
+                                    logRecord.severityText =
+                                        switch log.level {
+                                        case .trace: "TRACE"
+                                        case .debug: "DEBUG"
+                                        case .info: "INFO"
+                                        case .notice: "NOTICE"
+                                        case .warning: "WARNING"
+                                        case .error: "ERROR"
+                                        case .critical: "CRITICAL"
+                                        }
 
                                     logRecord.attributes = .init(log.metadata)
                                     logRecord.body = .with { body in
@@ -121,11 +143,9 @@ public final class OTLPGRPCLogEntryExporter: OTelLogRecordExporter {
     public func forceFlush() async throws {}
 
     public func shutdown() async {
-        let promise = connection.eventLoop.makePromise(of: Void.self)
-
-        connection.closeGracefully(deadline: .now() + .milliseconds(500), promise: promise)
-
-        try? await promise.futureResult.get()
+        // TODO: How do we replicate a graceful shut down timeout
+        grpcClient.beginGracefulShutdown()
+        try? await grpcClientTask.value
     }
 }
 
@@ -154,12 +174,14 @@ extension Opentelemetry_Proto_Common_V1_KeyValueList {
 extension Opentelemetry_Proto_Common_V1_AnyValue {
     package init(_ value: Logger.Metadata.Value) {
         self = .with { attributeValue in
-            attributeValue.value = switch value {
-            case .string(let string): .stringValue(string)
-            case .stringConvertible(let stringConvertible): .stringValue(stringConvertible.description)
-            case .dictionary(let metadata): .kvlistValue(.init(metadata))
-            case .array(let values): .arrayValue(.init(values))
-            }
+            attributeValue.value =
+                switch value {
+                case .string(let string): .stringValue(string)
+                case .stringConvertible(let stringConvertible):
+                    .stringValue(stringConvertible.description)
+                case .dictionary(let metadata): .kvlistValue(.init(metadata))
+                case .array(let values): .arrayValue(.init(values))
+                }
         }
     }
 }
