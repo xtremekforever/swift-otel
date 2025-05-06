@@ -24,19 +24,21 @@ import NIOSSL
 @_spi(Logging)
 public final class OTLPGRPCLogEntryExporter: OTelLogRecordExporter {
     private let configuration: OTLPGRPCLogEntryExporterConfiguration
-    private let client:
-        Opentelemetry_Proto_Collector_Logs_V1_LogsService.Client<HTTP2ClientTransport.Posix>
+    private let shutdownTimeout: Duration
+    private let client: Opentelemetry_Proto_Collector_Logs_V1_LogsService.Client<HTTP2ClientTransport.Posix>
     private let grpcClient: GRPCClient<HTTP2ClientTransport.Posix>
     private let grpcClientTask: Task<Void, any Error>
     private let logger = Logger(label: String(describing: OTLPGRPCLogEntryExporter.self))
 
     public init(
         configuration: OTLPGRPCLogEntryExporterConfiguration,
+        shutdownTimeout: Duration = .seconds(30),
         group: EventLoopGroup = MultiThreadedEventLoopGroup.singleton,
         requestLogger: Logger = ._otelDisabled,
         backgroundActivityLogger: Logger = ._otelDisabled
     ) {
         self.configuration = configuration
+        self.shutdownTimeout = shutdownTimeout
 
         if configuration.endpoint.isInsecure {
             logger.debug(
@@ -143,9 +145,10 @@ public final class OTLPGRPCLogEntryExporter: OTelLogRecordExporter {
     public func forceFlush() async throws {}
 
     public func shutdown() async {
-        // TODO: How do we replicate a graceful shut down timeout
         grpcClient.beginGracefulShutdown()
-        try? await grpcClientTask.value
+        try? await withTimeout(shutdownTimeout) {
+            try await self.grpcClientTask.value
+        }
     }
 }
 

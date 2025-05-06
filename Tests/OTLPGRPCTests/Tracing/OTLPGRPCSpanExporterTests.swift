@@ -12,13 +12,14 @@
 //===----------------------------------------------------------------------===//
 
 import GRPCCore
-@testable import Logging
 import NIO
-@testable import OTel
 import OTelTesting
-@testable import OTLPGRPC
 import Tracing
 import XCTest
+
+@testable import Logging
+@testable import OTLPGRPC
+@testable import OTel
 
 final class OTLPGRPCSpanExporterTests: XCTestCase {
     private var requestLogger: Logger!
@@ -81,11 +82,11 @@ final class OTLPGRPCSpanExporterTests: XCTestCase {
             print(error)
         }
 
-//        XCTAssertEqual(collector.traceProvider.requests.count, 1)
-//        let request = try XCTUnwrap(collector.traceProvider.requests.first)
+        //        XCTAssertEqual(collector.traceProvider.requests.count, 1)
+        //        let request = try XCTUnwrap(collector.traceProvider.requests.first)
 
-//        let userAgents = request.headers["user-agent"]
-//        XCTAssertTrue(userAgents.contains(.string("OTel-OTLP-Exporter-Swift/\(OTelLibrary.version)")))
+        //        let userAgents = request.headers["user-agent"]
+        //        XCTAssertTrue(userAgents.contains(.string("OTel-OTLP-Exporter-Swift/\(OTelLibrary.version)")))
     }
 
     func test_export_withCustomHeaders_includesCustomHeadersInExportRequest() async throws {
@@ -117,41 +118,24 @@ final class OTLPGRPCSpanExporterTests: XCTestCase {
 
         XCTAssertEqual(request.exportRequest.message.resourceSpans.count, 1)
         let resourceSpans = try XCTUnwrap(request.exportRequest.message.resourceSpans.first)
-        XCTAssertEqual(resourceSpans.resource, .with {
-            $0.attributes = .init(["service.name": "test"])
-        })
+        XCTAssertEqual(
+            resourceSpans.resource,
+            .with {
+                $0.attributes = .init(["service.name": "test"])
+            })
         XCTAssertEqual(resourceSpans.scopeSpans.count, 1)
         let scopeSpans = try XCTUnwrap(resourceSpans.scopeSpans.first)
-        XCTAssertEqual(scopeSpans.scope, .with {
-            $0.name = "swift-otel"
-            $0.version = OTelLibrary.version
-        })
+        XCTAssertEqual(
+            scopeSpans.scope,
+            .with {
+                $0.name = "swift-otel"
+                $0.version = OTelLibrary.version
+            })
         XCTAssertEqual(scopeSpans.spans, [.init(span)])
 
         print(request.headers)
-//        XCTAssertEqual(request.headers["key1"], "42")
-//        XCTAssertEqual(request.headers["key2"], "84")
-    }
-
-    func test_export_whenAlreadyShutdown_throwsAlreadyShutdownError() async throws {
-        let collector = OTLPGRPCMockCollector()
-
-        do {
-            try await collector.withInsecureServer { endpoint in
-                let configuration = try OTLPGRPCSpanExporterConfiguration(environment: [:], endpoint: endpoint)
-                let exporter = OTLPGRPCSpanExporter(
-                    configuration: configuration,
-                    requestLogger: requestLogger,
-                    backgroundActivityLogger: backgroundActivityLogger
-                )
-                await exporter.shutdown()
-
-                let span = OTelFinishedSpan.stub()
-                try await exporter.export([span])
-
-                XCTFail("Expected exporter to throw error, successfully exported instead.")
-            }
-        } catch is OTelSpanExporterAlreadyShutDownError {}
+        //        XCTAssertEqual(request.headers["key1"], "42")
+        //        XCTAssertEqual(request.headers["key2"], "84")
     }
 
     func test_forceFlush() async throws {

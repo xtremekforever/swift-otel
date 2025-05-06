@@ -17,12 +17,13 @@ import Logging
 import NIO
 import NIOHPACK
 import NIOSSL
-import OTel
 import OTLPCore
+import OTel
 
 /// Exports metrics to an OTel collector using OTLP/gRPC.
 public final class OTLPGRPCMetricExporter: OTelMetricExporter {
     private let configuration: OTLPGRPCMetricExporterConfiguration
+    private let shutdownTimeout: Duration
     private let client: Opentelemetry_Proto_Collector_Metrics_V1_MetricsService.Client<HTTP2ClientTransport.Posix>
     private let grpcClient: GRPCClient<HTTP2ClientTransport.Posix>
     private let grpcClientTask: Task<Void, any Error>
@@ -30,12 +31,14 @@ public final class OTLPGRPCMetricExporter: OTelMetricExporter {
 
     public convenience init(
         configuration: OTLPGRPCMetricExporterConfiguration,
+        shutdownTimeout: Duration = .seconds(30),
         group: any EventLoopGroup = MultiThreadedEventLoopGroup.singleton,
         requestLogger: Logger = ._otelDisabled,
         backgroundActivityLogger: Logger = ._otelDisabled
     ) {
         self.init(
             configuration: configuration,
+            shutdownTimeout: shutdownTimeout,
             group: group,
             requestLogger: requestLogger,
             backgroundActivityLogger: backgroundActivityLogger,
@@ -45,23 +48,29 @@ public final class OTLPGRPCMetricExporter: OTelMetricExporter {
 
     init(
         configuration: OTLPGRPCMetricExporterConfiguration,
+        shutdownTimeout: Duration = .seconds(30),
         group: any EventLoopGroup,
         requestLogger: Logger,
         backgroundActivityLogger: Logger,
         trustRoots: NIOSSLTrustRoots
     ) {
         self.configuration = configuration
+        self.shutdownTimeout = shutdownTimeout
 
         if configuration.endpoint.isInsecure {
-            logger.debug("Using insecure connection.", metadata: [
-                "host": "\(configuration.endpoint.host)",
-                "port": "\(configuration.endpoint.port)",
-            ])
+            logger.debug(
+                "Using insecure connection.",
+                metadata: [
+                    "host": "\(configuration.endpoint.host)",
+                    "port": "\(configuration.endpoint.port)",
+                ])
         } else {
-            logger.debug("Using secure connection.", metadata: [
-                "host": "\(configuration.endpoint.host)",
-                "port": "\(configuration.endpoint.port)",
-            ])
+            logger.debug(
+                "Using secure connection.",
+                metadata: [
+                    "host": "\(configuration.endpoint.host)",
+                    "port": "\(configuration.endpoint.port)",
+                ])
             // TODO: Support OTEL_EXPORTER_OTLP_CERTIFICATE
             // TODO: Support OTEL_EXPORTER_OTLP_CLIENT_KEY
             // TODO: Support OTEL_EXPORTER_OTLP_CLIENT_CERTIFICATE
@@ -69,9 +78,11 @@ public final class OTLPGRPCMetricExporter: OTelMetricExporter {
 
         var headers = configuration.headers
         if !headers.isEmpty {
-            logger.trace("Configured custom request headers.", metadata: [
-                "keys": .array(headers.map { "\($0.name)" }),
-            ])
+            logger.trace(
+                "Configured custom request headers.",
+                metadata: [
+                    "keys": .array(headers.map { "\($0.name)" })
+                ])
         }
         headers.replaceOrAdd(name: "user-agent", value: "OTel-OTLP-Exporter-Swift/\(OTelLibrary.version)")
 
@@ -109,8 +120,9 @@ public final class OTLPGRPCMetricExporter: OTelMetricExporter {
     }
 
     public func shutdown() async {
-        // TODO: How do we replicate a graceful shut down timeout
         grpcClient.beginGracefulShutdown()
-        try? await grpcClientTask.value
+        try? await withTimeout(.seconds(30)) {
+            try await self.grpcClientTask.value
+        }
     }
 }
