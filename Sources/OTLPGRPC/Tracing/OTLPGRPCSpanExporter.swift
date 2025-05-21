@@ -97,7 +97,7 @@ public final class OTLPGRPCSpanExporter: OTelSpanExporter {
         let transport: HTTP2ClientTransport.Posix
         do {
             transport = try HTTP2ClientTransport.Posix(
-                target: .ipv6(host: configuration.endpoint.host, port: configuration.endpoint.port),
+                target: .dns(host: configuration.endpoint.host, port: configuration.endpoint.port),
                 transportSecurity: configuration.endpoint.isInsecure
                     ? .plaintext
                     : .tls(configure: { config in
