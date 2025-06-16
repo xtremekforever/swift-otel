@@ -1,4 +1,4 @@
-// swift-tools-version:5.9
+// swift-tools-version:6.1
 import PackageDescription
 
 let sharedSwiftSettings: [SwiftSetting] = [.enableExperimentalFeature("StrictConcurrency=complete")]
@@ -8,7 +8,11 @@ let package = Package(
     platforms: [.macOS(.v13), .iOS(.v16)],
     products: [
         .library(name: "OTel", targets: ["OTel"]),
-        .library(name: "OTLPGRPC", targets: ["OTLPGRPC"]),
+    ],
+    traits: [
+        .trait(name: "OTLPHTTP"),
+        .trait(name: "OTLPGRPC"),
+        .default(enabledTraits: ["OTLPHTTP", "OTLPGRPC"]),
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-distributed-tracing.git", from: "1.2.0"),
@@ -36,6 +40,19 @@ let package = Package(
         .target(
             name: "OTel",
             dependencies: [
+            ],
+            swiftSettings: sharedSwiftSettings
+        ),
+        .testTarget(
+            name: "OTelTests",
+            dependencies: [
+                .target(name: "OTel"),
+            ]
+        ),
+
+        .target(
+            name: "OTelCore",
+            dependencies: [
                 .product(name: "AsyncAlgorithms", package: "swift-async-algorithms"),
                 .product(name: "DequeModule", package: "swift-collections"),
                 .product(name: "Logging", package: "swift-log"),
@@ -49,9 +66,9 @@ let package = Package(
             swiftSettings: sharedSwiftSettings
         ),
         .testTarget(
-            name: "OTelTests",
+            name: "OTelCoreTests",
             dependencies: [
-                .target(name: "OTel"),
+                .target(name: "OTelCore"),
                 .target(name: "OTelTesting"),
             ],
             swiftSettings: sharedSwiftSettings
@@ -62,7 +79,7 @@ let package = Package(
             dependencies: [
                 .product(name: "Tracing", package: "swift-distributed-tracing"),
                 .product(name: "NIOConcurrencyHelpers", package: "swift-nio"),
-                .target(name: "OTel"),
+                .target(name: "OTelCore"),
             ],
             swiftSettings: sharedSwiftSettings
         ),
@@ -72,7 +89,7 @@ let package = Package(
         .target(
             name: "OTLPCore",
             dependencies: [
-                .target(name: "OTel"),
+                .target(name: "OTelCore"),
                 .product(name: "SwiftProtobuf", package: "swift-protobuf"),
             ],
             swiftSettings: sharedSwiftSettings
@@ -89,7 +106,7 @@ let package = Package(
         .target(
             name: "OTLPGRPC",
             dependencies: [
-                .target(name: "OTel"),
+                .target(name: "OTelCore"),
                 .target(name: "OTLPCore"),
                 .product(name: "Logging", package: "swift-log"),
                 .product(name: "Tracing", package: "swift-distributed-tracing"),
@@ -109,6 +126,21 @@ let package = Package(
             ],
             swiftSettings: sharedSwiftSettings
         ),
+
+        .target(
+            name: "OTLPHTTP",
+            dependencies: [
+            ],
+            swiftSettings: sharedSwiftSettings
+        ),
+        .testTarget(
+            name: "OTLPHTTPTests",
+            dependencies: [
+                .target(name: "OTLPHTTP"),
+            ],
+            swiftSettings: sharedSwiftSettings
+        ),
+
     ],
-    swiftLanguageVersions: [.version("6"), .v5]
+    swiftLanguageModes: [.version("6"), .v5]
 )
