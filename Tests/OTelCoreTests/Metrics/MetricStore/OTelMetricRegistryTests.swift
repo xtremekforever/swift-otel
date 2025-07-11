@@ -426,8 +426,8 @@ final class OTelMetricRegistryTests: XCTestCase {
 final class DuplicateRegistrationHandlerTests: XCTestCase {
     func test_LoggingDuplicateRegistrationHandler() {
         let recordingLogHandler = RecordingLogHandler()
-        LoggingSystem.bootstrapInternal { _ in recordingLogHandler }
-        let handler = WarningDuplicateRegistrationHandler(logger: Logger(label: "test"))
+        let recordingLogger = Logger(label: "test", recordingLogHandler)
+        let handler = WarningDuplicateRegistrationHandler(logger: recordingLogger)
         handler.handle(
             newRegistration: .counter(name: "name"),
             existingRegistrations: [.gauge(name: "name"), .histogram(name: "name")]
@@ -446,6 +446,16 @@ final class DuplicateRegistrationHandlerTests: XCTestCase {
 }
 
 extension OTelMetricRegistry {
+    // Overload with logging disabled.
+    convenience init(duplicateRegistrationHandler: some DuplicateRegistrationHandler) {
+        self.init(duplicateRegistrationHandler: duplicateRegistrationHandler, logger: ._otelDisabled)
+    }
+
+    // Overload with logging disabled.
+    convenience init(onDuplicateRegistration: DuplicateRegistrationBehavior = .warn) {
+        self.init(onDuplicateRegistration: onDuplicateRegistration, logger: ._otelDisabled)
+    }
+
     var numDistinctInstruments: Int {
         let metrics = storage.withLockedValue { $0 }
         let x: [Int] = [
