@@ -1,4 +1,4 @@
-# Hello World server using Hummingbird middleware
+# Hello World HTTP server with observability middleware (OTLP/HTTP+Protobuf)
 
 An HTTP server that uses middleware to emit telemetry for each HTTP request.
 
@@ -10,6 +10,8 @@ This example bootstraps the logging, metrics, and tracing Swift subsystems to ex
 logs, metrics, and traces to file, Prometheus, and Jaeger, respectively, via an OTel Collector.
 
 It then starts a Hummingbird HTTP server along with its associated middleware for instrumentation.
+
+Telemetry data is exported using OTLP/HTTP+Protobuf (the default serialization).
 
 ## Testing
 
@@ -96,8 +98,8 @@ watch the logging output using the following command:
 
 Now open the Prometheus UI in your web browser by visiting
 [localhost:9090](http://localhost:9090). Click the graph tab and update the
-query to `hb_request_duration_bucket`, or use [this pre-canned
-link](http://localhost:9090/graph?g0.expr=hb_request_duration_bucket).
+query to `http_server_request_duration_bucket`, or use [this pre-canned
+link](http://localhost:9090/graph?g0.expr=http_server_request_duration_bucket).
 
 You should see the graph showing the recent request durations.
 
@@ -105,8 +107,8 @@ You should see the graph showing the recent request durations.
 
 Visit Jaeger UI in your browser at [localhost:16686](http://localhost:16686).
 
-Select `example_server` from the dropdown and click `Find Traces`, or use
-[this pre-canned link](http://localhost:16686/search?service=example_server).
+Select `hello_world` from the dropdown and click `Find Traces`, or use
+[this pre-canned link](http://localhost:16686/search?service=hello_world).
 
 See the traces for the recent requests and click to select a trace for a given request.
 

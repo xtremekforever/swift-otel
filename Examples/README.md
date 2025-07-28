@@ -12,9 +12,11 @@ example.
 Each of these examples bootstraps the logging, metrics, and tracing Swift subsystems and uses Docker Compose to export
 logs, metrics, and traces to file, Prometheus, and Jaeger, respectively, via an OTel Collector.
 
-- [hello-world-hummingbird-server](./hello-world-hummingbird-server) - HTTP server with instrumentation middleware, exporting telemetry over OTLP/HTTP+Protobuf.
-- TODO: same as above but using OTLP/HTTP+json exporter
-- TODO: same as above but using OTLP/gRPC exporter
+- [hello-world-hummingbird-server-otlp-http-protobuf](./hello-world-hummingbird-server-otlp-http-protobuf) - HTTP server
+  with instrumentation middleware, exporting telemetry over OTLP/HTTP+Protobuf.
+- [hello-world-hummingbird-server-otlp-http-json](./hello-world-hummingbird-server-otlp-http-json) - HTTP server
+- [hello-world-hummingbird-server-otlp-grpc](./hello-world-hummingbird-server-otlp-grpc) - HTTP server
+  with instrumentation middleware, exporting telemetry over OTLP/gRPC.
 
 ## Advanced configuration
 

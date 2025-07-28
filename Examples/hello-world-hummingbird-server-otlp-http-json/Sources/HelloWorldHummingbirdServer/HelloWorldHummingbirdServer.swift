@@ -2,7 +2,7 @@
 //
 // This source file is part of the Swift OTel open source project
 //
-// Copyright (c) 2024 the Swift OTel project authors
+// Copyright (c) 2025 the Swift OTel project authors
 // Licensed under Apache License v2.0
 //
 // See LICENSE.txt for license information
@@ -17,13 +17,16 @@ import OTel
 @main
 enum HelloWorldHummingbirdServer {
     static func main() async throws {
-        // Bootstrap observability backends with default configuration (except export intervals).
+        // Bootstrap observability backends (with short export intervals for demo purposes).
         var config = OTel.Configuration.default
-        config.diagnosticLogLevel = .error
         config.serviceName = "hello_world"
+        config.diagnosticLogLevel = .error
         config.logs.batchLogRecordProcessor.scheduleDelay = .seconds(3)
         config.metrics.exportInterval = .seconds(3)
         config.traces.batchSpanProcessor.scheduleDelay = .seconds(3)
+        config.logs.otlpExporter.protocol = .httpJSON
+        config.metrics.otlpExporter.protocol = .httpJSON
+        config.traces.otlpExporter.protocol = .httpJSON
         let observability = try OTel.bootstrap(configuration: config)
 
         // Create an HTTP server with instrumentation middlewares added.

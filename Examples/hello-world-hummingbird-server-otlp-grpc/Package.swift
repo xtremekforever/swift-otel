@@ -3,8 +3,8 @@
 import PackageDescription
 
 let package = Package(
-    name: "hello-world-hummingbird-server",
-    platforms: [.macOS(.v14)],
+    name: "hello-world-hummingbird-server-otlp-http-protobuf",
+    platforms: [.macOS(.v15)],
     dependencies: [
         .package(url: "https://github.com/hummingbird-project/hummingbird.git", from: "2.0.0"),
         // TODO: update this to `from: 1.0.0` when we release 1.0.
