@@ -64,6 +64,7 @@ internal enum WrappedLogRecordExporter: OTelLogRecordExporter {
     #if OTLPHTTP
     case http(OTLPHTTPLogRecordExporter)
     #endif
+    case console(OTelConsoleLogRecordExporter)
     case none
 
     func run() async throws {
@@ -74,6 +75,7 @@ internal enum WrappedLogRecordExporter: OTelLogRecordExporter {
         #if OTLPHTTP
         case .http(let exporter): try await exporter.run()
         #endif
+        case .console(let exporter): exporter.run()
         case .none: break
         }
     }
@@ -86,6 +88,7 @@ internal enum WrappedLogRecordExporter: OTelLogRecordExporter {
         #if OTLPHTTP
         case .http(let exporter): try await exporter.export(batch)
         #endif
+        case .console(let exporter): exporter.export(batch)
         case .none: break
         }
     }
@@ -98,6 +101,7 @@ internal enum WrappedLogRecordExporter: OTelLogRecordExporter {
         #if OTLPHTTP
         case .http(let exporter): try await exporter.forceFlush()
         #endif
+        case .console(let exporter): exporter.forceFlush()
         case .none: break
         }
     }
@@ -110,6 +114,7 @@ internal enum WrappedLogRecordExporter: OTelLogRecordExporter {
         #if OTLPHTTP
         case .http(let exporter): await exporter.shutdown()
         #endif
+        case .console(let exporter): exporter.shutdown()
         case .none: break
         }
     }
@@ -137,9 +142,8 @@ internal enum WrappedLogRecordExporter: OTelLogRecordExporter {
                 fatalError("Using the OTLP/HTTP exporter requires the `OTLPHTTP` trait enabled.")
                 #endif
             }
+        case .console: self = .console(OTelConsoleLogRecordExporter())
         case .none: self = .none
-        case .console:
-            throw NotImplementedError()
         }
     }
 }
@@ -360,6 +364,61 @@ internal enum WrappedSampler: OTelSampler {
         case .parentBasedJaegerRemote: fatalError("Swift OTel does not support the parent-based Jaeger sampler")
         case .jaegerRemote: fatalError("Swift OTel does not support the Jaeger sampler")
         case .xray: fatalError("Swift OTel does not support the X-Ray sampler")
+        }
+    }
+}
+
+internal enum WrappedLogRecordProcessor: OTelLogRecordProcessor {
+    case batch(OTelBatchLogRecordProcessor<WrappedLogRecordExporter, ContinuousClock>)
+    case simple(OTelSimpleLogRecordProcessor<WrappedLogRecordExporter>)
+
+    func run() async throws {
+        switch self {
+        case .batch(let processor): try await processor.run()
+        case .simple(let processor): try await processor.run()
+        }
+    }
+
+    func onEmit(_ record: inout OTelCore.OTelLogRecord) {
+        switch self {
+        case .batch(let processor): processor.onEmit(&record)
+        case .simple(let processor): processor.onEmit(&record)
+        }
+    }
+
+    func forceFlush() async throws {
+        switch self {
+        case .batch(let processor): try await processor.forceFlush()
+        case .simple(let processor): try await processor.forceFlush()
+        }
+    }
+
+    init(configuration: OTel.Configuration, exporter: WrappedLogRecordExporter, logger: Logger) throws {
+        /// Here we choose which processor to use based on the exporter, as described by the spec:
+        ///
+        /// > If a language provides a mechanism to automatically configure a LogRecordProcessor to pair with the
+        /// > associated exporter (e.g., using the OTEL_LOGS_EXPORTER environment variable), by default the standard
+        /// > output exporter SHOULD be paired with a simple processor.
+        /// > — source: https://opentelemetry.io/docs/specs/otel/logs/sdk_exporters/stdout/
+        switch exporter {
+        #if OTLPGRPC
+        case .grpc:
+            self = .batch(OTelBatchLogRecordProcessor(
+                exporter: exporter,
+                configuration: .init(configuration: configuration.logs.batchLogRecordProcessor),
+                logger: logger
+            ))
+        #endif
+        #if OTLPHTTP
+        case .http:
+            self = .batch(OTelBatchLogRecordProcessor(
+                exporter: exporter,
+                configuration: .init(configuration: configuration.logs.batchLogRecordProcessor),
+                logger: logger
+            ))
+        #endif
+        case .console, .none:
+            self = .simple(OTelSimpleLogRecordProcessor(exporter: exporter, logger: logger))
         }
     }
 }
