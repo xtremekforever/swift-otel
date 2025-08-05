@@ -13,6 +13,7 @@
 
 import NIOConcurrencyHelpers
 @testable import OTel
+import ServiceLifecycle
 
 actor OTelInMemoryLogRecordExporter: OTelLogRecordExporter {
     private(set) var exportedBatches = [[OTelLogRecord]]()
@@ -26,7 +27,10 @@ actor OTelInMemoryLogRecordExporter: OTelLogRecordExporter {
         self.exportDelay = exportDelay
     }
 
-    func run() async throws {}
+    func run() async throws {
+        // No background work needed, but we'll keep the run method running until its cancelled.
+        try await gracefulShutdown()
+    }
 
     func export(_ batch: some Collection<OTelLogRecord> & Sendable) async throws {
         if exportDelay != .zero {

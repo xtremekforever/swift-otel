@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 @testable import OTel
+import ServiceLifecycle
 
 /// An in-memory span exporter, collecting exported batches into ``OTelInMemorySpanExporter/exportedBatches``.
 final actor OTelInMemorySpanExporter: OTelSpanExporter {
@@ -26,7 +27,8 @@ final actor OTelInMemorySpanExporter: OTelSpanExporter {
     }
 
     func run() async throws {
-        // no-op
+        // No background work needed, but we'll keep the run method running until its cancelled.
+        try await gracefulShutdown()
     }
 
     func export(_ batch: some Collection<OTelFinishedSpan>) async throws {

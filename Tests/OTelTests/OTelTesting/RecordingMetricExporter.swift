@@ -14,6 +14,7 @@
 #if canImport(XCTest)
 import NIOConcurrencyHelpers
 @testable import OTel
+import ServiceLifecycle
 import XCTest
 
 struct RecordingMetricExporter: OTelMetricExporter {
@@ -27,7 +28,10 @@ struct RecordingMetricExporter: OTelMetricExporter {
 
     let recordedCalls = NIOLockedValueBox(RecordedCalls())
 
-    func run() async throws {}
+    func run() async throws {
+        // No background work needed, but we'll keep the run method running until its cancelled.
+        try await gracefulShutdown()
+    }
 
     func export(_ batch: some Collection<OTelResourceMetrics> & Sendable) {
         recordedCalls.withLockedValue { $0.exportCalls.append(batch) }

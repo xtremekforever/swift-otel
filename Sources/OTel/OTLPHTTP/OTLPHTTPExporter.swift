@@ -19,6 +19,7 @@ import Logging
 import NIOFoundationCompat
 import NIOHTTP1
 import NIOSSL
+import ServiceLifecycle
 import SwiftProtobuf
 
 import struct Foundation.Data
@@ -44,6 +45,11 @@ final class OTLPHTTPExporter<Request: Message, Response: Message>: Sendable {
         // error that they can debug. Having the application crash because HTTP client inside the exporter was not
         // shutdown will worsen the experience.
         try? self.httpClient.syncShutdown()
+    }
+
+    func run() async throws {
+        // No background work needed, but we'll keep the run method running until its cancelled.
+        try await gracefulShutdown()
     }
 
     func send(_ proto: Request) async throws -> Response {
