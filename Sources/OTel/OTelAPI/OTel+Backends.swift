@@ -117,7 +117,18 @@ extension OTel {
             logLevel: Logger.Level(configuration.logs.level),
             resource: resource
         )
-        return ({ _ in handler }, processor)
+
+        // Return a nested service group, which will handle the ordered shutdown.
+        var serviceConfigs: [ServiceGroupConfiguration.ServiceConfiguration] = []
+        for service in [exporter, processor] as [Service] {
+            serviceConfigs.append(.init(
+                service: service,
+                successTerminationBehavior: .gracefullyShutdownGroup,
+                failureTerminationBehavior: .gracefullyShutdownGroup
+            ))
+        }
+        let serviceGroup = ServiceGroup(configuration: .init(services: serviceConfigs, logger: logger))
+        return ({ _ in handler }, serviceGroup)
     }
 
     /// Create a metrics backend with an OTLP exporter.
@@ -217,7 +228,17 @@ extension OTel {
 
         let reader = OTelPeriodicExportingMetricsReader(resource: resource, producer: registry, exporter: metricsExporter, configuration: readerConfig, logger: logger)
 
-        return (OTLPMetricsFactory(registry: registry), reader)
+        // Return a nested service group, which will handle the ordered shutdown.
+        var serviceConfigs: [ServiceGroupConfiguration.ServiceConfiguration] = []
+        for service in [metricsExporter, reader] as [Service] {
+            serviceConfigs.append(.init(
+                service: service,
+                successTerminationBehavior: .gracefullyShutdownGroup,
+                failureTerminationBehavior: .gracefullyShutdownGroup
+            ))
+        }
+        let serviceGroup = ServiceGroup(configuration: .init(services: serviceConfigs, logger: logger))
+        return (OTLPMetricsFactory(registry: registry), serviceGroup)
     }
 
     /// Create a tracing backend with an OTLP exporter.
@@ -324,6 +345,16 @@ extension OTel {
             resource: resource,
             logger: logger
         )
-        return (tracer, tracer)
+        // Return a nested service group, which will handle the ordered shutdown.
+        var serviceConfigs: [ServiceGroupConfiguration.ServiceConfiguration] = []
+        for service in [exporter, processor, tracer] as [Service] {
+            serviceConfigs.append(.init(
+                service: service,
+                successTerminationBehavior: .gracefullyShutdownGroup,
+                failureTerminationBehavior: .gracefullyShutdownGroup
+            ))
+        }
+        let serviceGroup = ServiceGroup(configuration: .init(services: serviceConfigs, logger: logger))
+        return (tracer, serviceGroup)
     }
 }
