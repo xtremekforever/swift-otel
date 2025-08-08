@@ -12,6 +12,7 @@
 //===----------------------------------------------------------------------===//
 
 import Logging
+import ServiceLifecycle
 
 struct OTelSimpleLogRecordProcessor<Exporter: OTelLogRecordExporter>: OTelLogRecordProcessor {
     private let logger: Logger
@@ -27,20 +28,20 @@ struct OTelSimpleLogRecordProcessor<Exporter: OTelLogRecordExporter>: OTelLogRec
 
     func run() async throws {
         logger.info("Starting.")
-        try await withThrowingTaskGroup { group in
-            group.addTask { try await exporter.run() }
-            for try await record in stream.cancelOnGracefulShutdown() {
+        await withGracefulShutdownHandler {
+            for await record in stream {
                 do {
-                    logger.debug("Exporting log record.")
+                    logger.trace("Exporting log record.")
                     try await exporter.export([record])
                 } catch {
                     // simple log processor does not attempt retries
                 }
             }
-            logger.info("Log stream ended, shutting down.")
-            await exporter.shutdown()
-            try await group.waitForAll()
+        } onGracefulShutdown: {
+            logger.info("Shutting down.")
+            continuation.finish()
         }
+        await exporter.shutdown()
         logger.info("Shut down.")
     }
 
@@ -52,10 +53,5 @@ struct OTelSimpleLogRecordProcessor<Exporter: OTelLogRecordExporter>: OTelLogRec
     func forceFlush() async throws {
         logger.info("Force flushing exporter.")
         try await exporter.forceFlush()
-    }
-
-    func shutdown() async throws {
-        logger.info("Received shutdown request.")
-        await exporter.shutdown()
     }
 }
